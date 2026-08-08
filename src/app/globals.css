@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+:root {
+  --background: #080B12;
+  --foreground: #F5F7FA;
+  
+  --color-brand-bg: #080B12;
+  --color-brand-surface: #111722;
+  --color-brand-blue: #2563EB;
+  --color-brand-gold: #D4A72C;
+  --color-brand-text: #F5F7FA;
+  --color-brand-muted: #94A3B8;
+  --color-brand-border: #1E2B44;
+}
+
+@theme {
+  --color-brand-bg: var(--color-brand-bg);
+  --color-brand-surface: var(--color-brand-surface);
+  --color-brand-blue: var(--color-brand-blue);
+  --color-brand-gold: var(--color-brand-gold);
+  --color-brand-text: var(--color-brand-text);
+  --color-brand-muted: var(--color-brand-muted);
+  --color-brand-border: var(--color-brand-border);
+}
+
+body {
+  background-color: var(--color-brand-bg);
+  color: var(--color-brand-text);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #080B12;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1E2B44;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2563EB;
+}
+
+/* Smooth Focus Rings */
+input:focus, textarea:focus, select:focus {
+  outline: 2px solid #2563EB;
+  outline-offset: -1px;
+}
+
+/* Subtle transitions for buttons and cards */
+.smooth-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
