@@ -1,28 +1,53 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { ProgressCard } from "@/components/dashboard/ProgressCard";
 import { TaskItem } from "@/components/dashboard/TaskItem";
 import { DeadlineCard } from "@/components/dashboard/DeadlineCard";
 import { QuickAdd } from "@/components/dashboard/QuickAdd";
-import { CalendarDays, ClipboardList, Clock, ShieldAlert } from "lucide-react";
+import {
+    CalendarDays,
+    ClipboardList,
+    Clock,
+    BookOpen,
+    Sparkles,
+    CheckCircle2,
+    Layers,
+    ArrowRight,
+    Plus,
+} from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export default function DashboardOverview() {
-    const { userName, tasks, deadlines } = useApp();
+    const {
+        userName,
+        tasks,
+        deadlines,
+        ledgerEntries,
+        planner,
+        lifeAreas,
+        activeLifeArea,
+        setActiveLifeArea,
+    } = useApp();
 
-    // Filters for today (August 8, 2026 - metadata date)
     const todayDateString = "2026-08-08";
 
-    // Tasks due today or not completed of high priority
-    const todayTasks = tasks.filter(t => t.dueDate === todayDateString || (!t.completed && t.priority === "high"));
-    const completedToday = todayTasks.filter(t => t.completed).length;
+    // Filter tasks by active life area (if set) and due date
+    const areaFilteredTasks = activeLifeArea === "all"
+        ? tasks
+        : tasks.filter(t => t.lifeAreaId === activeLifeArea);
+
+    const todayTasks = areaFilteredTasks.filter(
+        (t) => t.dueDate === todayDateString || (!t.completed && t.priority === "high")
+    );
+    const completedToday = todayTasks.filter((t) => t.completed).length;
     const totalToday = todayTasks.length;
 
-    // 3-4 most important tasks for "Priority Today" (high priority or upcoming deadlines)
-    const priorityToday = tasks
-        .filter(t => !t.completed)
+    // Top priority tasks
+    const priorityToday = areaFilteredTasks
+        .filter((t) => !t.completed)
         .sort((a, b) => {
             if (a.priority === "high" && b.priority !== "high") return -1;
             if (a.priority !== "high" && b.priority === "high") return 1;
@@ -30,135 +55,264 @@ export default function DashboardOverview() {
         })
         .slice(0, 4);
 
-    // Filter 3 active upcoming deadlines
+    // Upcoming deadlines
     const upcomingDeadlines = deadlines
-        .filter(d => !d.completed && d.daysLeft >= -2)
+        .filter((d) => !d.completed && (activeLifeArea === "all" || d.lifeAreaId === activeLifeArea))
         .sort((a, b) => a.daysLeft - b.daysLeft)
         .slice(0, 3);
 
-    // Global event dispatchers to open modals inside DashboardLayout
-    const handleOpenTask = () => window.dispatchEvent(new Event("dd-open-task-modal"));
-    const handleOpenDeadline = () => window.dispatchEvent(new Event("dd-open-deadline-modal"));
-    const handleOpenNote = () => window.dispatchEvent(new Event("dd-open-note-modal"));
+    // Recent Ledger entries
+    const recentLedger = ledgerEntries
+        .filter((e) => activeLifeArea === "all" || e.lifeAreaId === activeLifeArea)
+        .sort((a, b) => new Date(`${b.date}T${b.time || "00:00"}`).getTime() - new Date(`${a.date}T${a.time || "00:00"}`).getTime())
+        .slice(0, 2);
+
+    // Today's scheduled planner sessions
+    const todayPlannerSessions = planner.filter((p) => p.day === "Saturday"); // Base date Sat Aug 8
+
+    // Trigger universal capture modal
+    const handleOpenCapture = (type?: "task" | "ledger" | "note" | "deadline" | "decision") => {
+        window.dispatchEvent(new CustomEvent("lw-open-quick-capture", { detail: { type } }));
+    };
 
     return (
         <div className="space-y-6">
-            {/* Greetings section */}
+            {/* Greetings & Date Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
-                        Good morning, {userName}.
+                        Good day, {userName}.
                     </h1>
-                    <p className="text-sm text-brand-muted mt-1 leading-none select-text">
-                        Here's what deserves your attention today.
+                    <p className="text-xs sm:text-sm text-brand-muted mt-1 leading-none select-text">
+                        Here is your central life-management and memory command center.
                     </p>
                 </div>
-                <div className="text-right hidden sm:block">
+
+                <div className="text-left sm:text-right">
                     <p className="text-xs font-bold text-brand-muted uppercase tracking-widest font-mono">
                         {new Date(todayDateString).toLocaleDateString("en-US", {
                             weekday: "long",
                             month: "short",
                             day: "numeric",
+                            year: "numeric",
                         })}
                     </p>
-                    <p className="text-[10px] text-brand-blue uppercase font-bold tracking-widest mt-1">
-                        Global standard time
+                    <p className="text-[10px] text-brand-gold uppercase font-bold tracking-widest mt-1">
+                        Lifeweft Active
                     </p>
                 </div>
             </div>
 
-            {/* Welcome Message Empty State */}
-            {tasks.length === 0 && (
-                <div className="bg-brand-surface border border-brand-border rounded-xl p-6 text-center space-y-3">
-                    <p className="text-sm text-brand-muted">Welcome to DailyDo! Capture your first task to get going.</p>
-                </div>
-            )}
+            {/* Life Areas Filter Bar */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none border-b border-brand-border/40">
+                <span className="text-[10px] font-bold text-brand-muted uppercase tracking-wider mr-1 flex items-center gap-1">
+                    <Layers size={11} />
+                    Life Area:
+                </span>
 
-            {/* Progress & Quick add row */}
+                <button
+                    onClick={() => setActiveLifeArea("all")}
+                    className={cn(
+                        "py-1.5 px-3 rounded-md text-xs font-semibold transition-all whitespace-nowrap border cursor-pointer",
+                        activeLifeArea === "all"
+                            ? "bg-brand-blue text-white border-brand-blue shadow-sm"
+                            : "bg-brand-surface text-brand-muted hover:text-brand-text border-brand-border"
+                    )}
+                >
+                    All Areas
+                </button>
+
+                {lifeAreas.map((area) => {
+                    const isActive = activeLifeArea === area.id;
+                    return (
+                        <button
+                            key={area.id}
+                            onClick={() => setActiveLifeArea(area.id)}
+                            className={cn(
+                                "flex items-center gap-1.5 py-1.5 px-3 rounded-md text-xs font-semibold transition-all whitespace-nowrap border cursor-pointer",
+                                isActive
+                                    ? "bg-brand-surface text-white border-brand-gold shadow-sm font-bold"
+                                    : "bg-brand-surface text-brand-muted hover:text-brand-text border-brand-border"
+                            )}
+                        >
+                            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: area.color }} />
+                            <span>{area.name}</span>
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Progress & Quick Capture Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-1">
                     <ProgressCard completedCount={completedToday} totalCount={totalToday} className="h-full" />
                 </div>
                 <div className="lg:col-span-2">
-                    <QuickAdd
-                        onOpenAddTaskModal={handleOpenTask}
-                        onOpenAddDeadlineModal={handleOpenDeadline}
-                        onOpenAddNoteModal={handleOpenNote}
-                    />
+                    <QuickAdd onOpenQuickCaptureModal={handleOpenCapture} />
                 </div>
             </div>
 
-            {/* Main lists layout grid */}
+            {/* Main Content Multi-Column Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column: Priority Today List */}
-                <div className="lg:col-span-2 space-y-3.5">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-xs font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1.5 leading-none">
-                            <ClipboardList size={13} className="text-brand-blue" />
-                            Priority Today
-                        </h3>
-                        <Link
-                            href="/dashboard/tasks"
-                            className="text-[11px] text-brand-blue font-bold tracking-wide uppercase hover:underline leading-none"
-                        >
-                            All Tasks ({tasks.length})
-                        </Link>
+                {/* Left 2 Columns: Priority Today & Scheduled Activities */}
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Priority Today Tasks */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-xs font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1.5 leading-none">
+                                <ClipboardList size={13} className="text-brand-blue" />
+                                Today's Priorities
+                            </h3>
+                            <Link
+                                href="/dashboard/tasks"
+                                className="text-[11px] text-brand-blue font-bold tracking-wide uppercase hover:underline leading-none flex items-center gap-1"
+                            >
+                                All Tasks ({areaFilteredTasks.length}) <ArrowRight size={11} />
+                            </Link>
+                        </div>
+
+                        <div className="space-y-2.5">
+                            {priorityToday.length === 0 ? (
+                                <div className="bg-brand-surface/40 border border-brand-border/40 border-dashed rounded-xl p-8 text-center text-brand-muted text-xs">
+                                    No pending priorities. Use Quick Capture to record today's tasks!
+                                </div>
+                            ) : (
+                                priorityToday.map((task) => (
+                                    <TaskItem key={task.id} task={task} />
+                                ))
+                            )}
+                        </div>
                     </div>
 
-                    <div className="space-y-2.5">
-                        {priorityToday.length === 0 ? (
-                            <div className="bg-brand-surface/40 border border-brand-border/40 border-dashed rounded-xl p-8 text-center text-brand-muted text-xs">
-                                No active priorities scheduled. Great job clearing the list!
-                            </div>
-                        ) : (
-                            priorityToday.map((task) => (
-                                <TaskItem key={task.id} task={task} />
-                            ))
-                        )}
+                    {/* Personal Ledger Recent Memory Timeline Snippet */}
+                    <div className="space-y-3 pt-2">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-xs font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1.5 leading-none">
+                                <BookOpen size={13} className="text-brand-gold" />
+                                Recent Personal Ledger Chronicle
+                            </h3>
+                            <Link
+                                href="/dashboard/ledger"
+                                className="text-[11px] text-brand-gold font-bold tracking-wide uppercase hover:underline leading-none flex items-center gap-1"
+                            >
+                                Open Ledger <ArrowRight size={11} />
+                            </Link>
+                        </div>
+
+                        <div className="space-y-2.5">
+                            {recentLedger.length === 0 ? (
+                                <div className="bg-brand-surface/40 border border-brand-border/40 border-dashed rounded-xl p-6 text-center text-brand-muted text-xs">
+                                    No timeline memories logged yet. Record what happened in your life!
+                                </div>
+                            ) : (
+                                recentLedger.map((entry) => (
+                                    <div
+                                        key={entry.id}
+                                        className="bg-brand-surface border border-brand-border rounded-xl p-4 space-y-1.5 hover:border-brand-gold/30 transition-colors"
+                                    >
+                                        <div className="flex items-center justify-between text-[10px] text-brand-muted">
+                                            <span className="font-bold text-brand-gold uppercase tracking-wider">
+                                                {entry.date} {entry.time && `• ${entry.time}`}
+                                            </span>
+                                            {entry.tags && entry.tags[0] && (
+                                                <span className="bg-brand-bg px-2 py-0.5 rounded border border-brand-border/60">
+                                                    #{entry.tags[0]}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <h4 className="text-xs font-bold text-white leading-snug">{entry.title}</h4>
+                                        <p className="text-[11px] text-brand-muted line-clamp-2 leading-relaxed">
+                                            {entry.description}
+                                        </p>
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                {/* Right Column: Upcoming Deadlines & Action panel */}
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-xs font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1.5 leading-none">
-                            <Clock size={13} className="text-brand-gold" />
-                            Upcoming
-                        </h3>
-                        <Link
-                            href="/dashboard/deadlines"
-                            className="text-[11px] text-brand-gold font-bold tracking-wide uppercase hover:underline leading-none"
-                        >
-                            Manage ({deadlines.length})
-                        </Link>
+                {/* Right Column: Deadlines, Scheduled Blocks, and Ask Lifeweft Widget */}
+                <div className="space-y-5">
+                    {/* Upcoming Deadlines */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-xs font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1.5 leading-none">
+                                <Clock size={13} className="text-rose-400" />
+                                Upcoming Deadlines
+                            </h3>
+                            <Link
+                                href="/dashboard/deadlines"
+                                className="text-[11px] text-rose-400 font-bold tracking-wide uppercase hover:underline leading-none"
+                            >
+                                View ({deadlines.length})
+                            </Link>
+                        </div>
+
+                        <div className="space-y-2.5">
+                            {upcomingDeadlines.length === 0 ? (
+                                <div className="bg-brand-surface/40 border border-brand-border/40 border-dashed rounded-xl p-6 text-center text-brand-muted text-xs">
+                                    No immediate deadlines due.
+                                </div>
+                            ) : (
+                                upcomingDeadlines.map((deadline) => (
+                                    <DeadlineCard key={deadline.id} deadline={deadline} />
+                                ))
+                            )}
+                        </div>
                     </div>
 
-                    <div className="space-y-3">
-                        {upcomingDeadlines.length === 0 ? (
-                            <div className="bg-brand-surface/40 border border-brand-border/40 border-dashed rounded-xl p-8 text-center text-brand-muted text-xs">
-                                No upcoming deadlines on the horizon.
+                    {/* Scheduled Activities / Planner Focus */}
+                    <div className="bg-brand-surface border border-brand-border rounded-xl p-4.5 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="h-6 w-6 rounded bg-brand-bg border border-brand-border flex items-center justify-center">
+                                    <CalendarDays size={13} className="text-brand-blue" />
+                                </div>
+                                <h4 className="text-xs font-bold text-white leading-none">Scheduled Focus Blocks</h4>
                             </div>
+                            <Link
+                                href="/dashboard/planner"
+                                className="text-[10px] text-brand-blue font-bold tracking-wide uppercase hover:underline"
+                            >
+                                Week View
+                            </Link>
+                        </div>
+
+                        {todayPlannerSessions.length === 0 ? (
+                            <p className="text-[11px] text-brand-muted">
+                                You have <b>{planner.length} focus sessions</b> planned this week.
+                            </p>
                         ) : (
-                            upcomingDeadlines.map((deadline) => (
-                                <DeadlineCard key={deadline.id} deadline={deadline} />
-                            ))
+                            <div className="space-y-1.5">
+                                {todayPlannerSessions.map((session) => (
+                                    <div
+                                        key={session.id}
+                                        className="p-2 rounded-lg bg-brand-bg border border-brand-border/60 text-[11px] flex justify-between items-center"
+                                    >
+                                        <span className="font-semibold text-brand-text truncate">{session.title}</span>
+                                        <span className="text-[9px] text-brand-muted font-mono">{session.time}</span>
+                                    </div>
+                                ))}
+                            </div>
                         )}
                     </div>
 
-                    {/* Quick Info Box (concept of simple dailydo overview) */}
-                    <div className="bg-brand-surface border border-brand-border/80 rounded-xl p-4.5 space-y-2.5 relative overflow-hidden">
-                        <div className="h-6 w-6 rounded bg-neutral-950/20 border border-brand-border flex items-center justify-center">
-                            <CalendarDays size={13} className="text-brand-blue" />
+                    {/* Ask Lifeweft Intelligence Card */}
+                    <div className="bg-gradient-to-br from-brand-surface to-brand-surface/80 border border-brand-gold/30 rounded-xl p-4.5 space-y-2.5 relative overflow-hidden shadow-lg shadow-black/20">
+                        <div className="flex items-center gap-2">
+                            <div className="h-6 w-6 rounded bg-brand-gold/10 border border-brand-gold/40 flex items-center justify-center">
+                                <Sparkles size={13} className="text-brand-gold" />
+                            </div>
+                            <h4 className="text-xs font-bold text-brand-gold leading-none">Ask Lifeweft</h4>
                         </div>
-                        <h4 className="text-xs font-bold text-white leading-none">Weekly Planner Segment</h4>
                         <p className="text-[11px] text-brand-muted leading-relaxed">
-                            You have <b>6 planner blocks</b> scheduled this week. Head over to the Planner to view study, work and recovery blocks.
+                            Need a summary of decisions, milestones, or today's priorities? Ask your personal memory layer.
                         </p>
                         <Link
-                            href="/dashboard/planner"
-                            className="inline-flex text-[10px] text-brand-blue font-bold tracking-wide uppercase hover:underline"
+                            href="/dashboard/ask"
+                            className="inline-flex items-center gap-1.5 text-xs text-brand-gold font-bold uppercase tracking-wider hover:underline"
                         >
-                            Open week timeline
+                            Open Conversation <ArrowRight size={12} />
                         </Link>
                     </div>
                 </div>
@@ -166,4 +320,3 @@ export default function DashboardOverview() {
         </div>
     );
 }
-

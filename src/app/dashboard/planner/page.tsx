@@ -2,20 +2,41 @@
 
 import React, { useState } from "react";
 import { useApp, PlannerSession } from "@/context/AppContext";
-import { Calendar, Plus, BookOpen, Laptop, Heart, User, Trash2 } from "lucide-react";
+import {
+    Calendar,
+    Plus,
+    BookOpen,
+    Laptop,
+    Heart,
+    User,
+    Trash2,
+    Clock,
+    Layers,
+    Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { cn } from "@/lib/utils";
 
 const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export default function PlannerPage() {
-    const { planner, tasks, deadlines, addPlannerSession, deletePlannerSession } = useApp();
+    const {
+        planner,
+        tasks,
+        deadlines,
+        lifeAreas,
+        addPlannerSession,
+        deletePlannerSession,
+    } = useApp();
 
     const [isAddSessionOpen, setIsAddSessionOpen] = useState(false);
     const [sessionDay, setSessionDay] = useState("Monday");
     const [sessionTitle, setSessionTitle] = useState("");
     const [sessionTime, setSessionTime] = useState("09:00 - 11:00");
     const [sessionType, setSessionType] = useState<PlannerSession["type"]>("work");
+    const [sessionLifeArea, setSessionLifeArea] = useState<string>("area-work");
+    const [selectedLifeArea, setSelectedLifeArea] = useState<string>("all");
 
     const handleOpenAddSession = (day: string) => {
         setSessionDay(day);
@@ -31,6 +52,7 @@ export default function PlannerPage() {
             title: sessionTitle.trim(),
             time: sessionTime.trim(),
             type: sessionType,
+            lifeAreaId: sessionLifeArea,
         });
 
         setSessionTitle("");
@@ -65,100 +87,125 @@ export default function PlannerPage() {
 
     return (
         <div className="space-y-6">
-            {/* Page Header */}
+            {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-2">
+                        <Calendar className="text-brand-blue" />
                         Weekly Planner
                     </h1>
                     <p className="text-sm text-brand-muted mt-1 leading-none">
-                        Organize core study sessions and work sprints alongside deadlines.
+                        Organize structured focus blocks, work sprints, and recovery sessions alongside deadlines.
                     </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <select
+                        value={selectedLifeArea}
+                        onChange={(e) => setSelectedLifeArea(e.target.value)}
+                        className="bg-brand-surface text-brand-text border border-brand-border rounded-lg px-3 py-1.5 text-xs focus:border-brand-blue outline-none cursor-pointer"
+                    >
+                        <option value="all">All Life Areas</option>
+                        {lifeAreas.map((area) => (
+                            <option key={area.id} value={area.id}>
+                                {area.name} Area
+                            </option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
-            {/* Grid: 7 columns or vertical blocks layout */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
+            {/* 7-Day Columns Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3.5">
                 {DAYS_OF_WEEK.map((day) => {
-                    // Filter sessions
-                    const daySessions = planner.filter((s) => s.day === day);
+                    const daySessions = planner.filter(
+                        (s) => s.day === day && (selectedLifeArea === "all" || s.lifeAreaId === selectedLifeArea)
+                    );
 
-                    // Tasks scheduled for this day (mock setup: map mon->sun based on index range,
-                    // or matching simple date maps. Let's map if task exists. For visual correctness, we print
-                    // tasks with mock maps or matching date strings)
-                    // Mon: 2026-08-03, Tue: 08-04, Wed: 08-05, Thu: 08-06, Fri: 08-07, Sat: 08-08, Sun: 08-09
-                    // Today Sat August 8 matching.
                     const dateMap: Record<string, string> = {
-                        Monday: "2026-08-10", // next week
+                        Monday: "2026-08-10",
                         Tuesday: "2026-08-11",
                         Wednesday: "2026-08-12",
                         Thursday: "2026-08-13",
                         Friday: "2026-08-14",
-                        Saturday: "2026-08-08", // Today
-                        Sunday: "2026-08-09",   // Tomorrow
+                        Saturday: "2026-08-08",
+                        Sunday: "2026-08-09",
                     };
 
-                    const dayTasks = tasks.filter((t) => t.dueDate === dateMap[day]);
-                    const dayDeadlines = deadlines.filter((d) => d.dueDate === dateMap[day] && !d.completed);
+                    const dayTasks = tasks.filter(
+                        (t) => t.dueDate === dateMap[day] && (selectedLifeArea === "all" || t.lifeAreaId === selectedLifeArea)
+                    );
+                    const dayDeadlines = deadlines.filter(
+                        (d) => d.dueDate === dateMap[day] && !d.completed && (selectedLifeArea === "all" || d.lifeAreaId === selectedLifeArea)
+                    );
+
+                    const isToday = day === "Saturday";
 
                     return (
                         <div
                             key={day}
-                            className="bg-brand-surface border border-brand-border rounded-xl p-4 flex flex-col min-h-[350px] relative group transition-all hover:border-brand-border/80"
+                            className={cn(
+                                "bg-brand-surface border rounded-xl p-3.5 flex flex-col min-h-[360px] relative group transition-all",
+                                isToday ? "border-brand-gold/60 shadow-lg shadow-brand-gold/5" : "border-brand-border hover:border-brand-border/80"
+                            )}
                         >
-                            {/* Day title */}
-                            <div className="flex items-center justify-between pb-2 border-b border-brand-border/40 mb-3.5">
-                                <span className="font-bold text-sm text-white tracking-tight">{day}</span>
-                                {day === "Saturday" && (
-                                    <span className="text-[9px] bg-brand-blue/20 text-brand-blue border border-brand-blue/30 px-1.5 py-0.2 rounded font-bold uppercase tracking-wide">
+                            {/* Day Header */}
+                            <div className="flex items-center justify-between pb-2 border-b border-brand-border/40 mb-3">
+                                <span className="font-bold text-xs text-white tracking-tight">{day}</span>
+                                {isToday && (
+                                    <span className="text-[9px] bg-brand-gold/20 text-brand-gold border border-brand-gold/30 px-1.5 py-0.2 rounded font-bold uppercase tracking-wider font-mono">
                                         Today
                                     </span>
                                 )}
                             </div>
 
-                            {/* Day Contents container */}
-                            <div className="flex-1 space-y-3.5 overflow-y-auto max-h-[220px]">
-                                {/* 1. Show Deadlines (Critical alert status) */}
+                            {/* Sessions & Elements Container */}
+                            <div className="flex-1 space-y-3 overflow-y-auto max-h-[240px] pr-0.5 scrollbar-thin">
+                                {/* Deadlines */}
                                 {dayDeadlines.length > 0 && (
-                                    <div className="space-y-1.5">
-                                        <p className="text-[9px] font-bold text-brand-gold uppercase tracking-wider">Deadlines</p>
-                                        {dayDeadlines.map(d => (
-                                            <div key={d.id} className="p-2 border border-brand-gold/30 bg-brand-gold/5 text-brand-gold rounded-lg leading-tight">
-                                                <p className="text-[11px] font-bold truncate">{d.title}</p>
-                                                <p className="text-[8.5px] opacity-80 mt-0.5">⚠️ Milestone Due</p>
+                                    <div className="space-y-1">
+                                        <p className="text-[9px] font-bold text-rose-400 uppercase tracking-wider">Deadlines</p>
+                                        {dayDeadlines.map((d) => (
+                                            <div
+                                                key={d.id}
+                                                className="p-1.5 border border-rose-900/40 bg-rose-950/20 text-rose-300 rounded-md leading-tight text-[10px]"
+                                            >
+                                                <p className="font-bold truncate">{d.title}</p>
+                                                <p className="text-[8px] opacity-80 mt-0.5">⚠️ Due Milestone</p>
                                             </div>
                                         ))}
                                     </div>
                                 )}
 
-                                {/* 2. Show Scheduled Planner Sessions */}
-                                <div className="space-y-1.5">
-                                    <p className="text-[9px] font-bold text-brand-muted uppercase tracking-wider">Sessions</p>
+                                {/* Focus Blocks / Sessions */}
+                                <div className="space-y-1">
+                                    <p className="text-[9px] font-bold text-brand-muted uppercase tracking-wider">Focus Blocks</p>
                                     {daySessions.length === 0 && dayTasks.length === 0 && dayDeadlines.length === 0 ? (
-                                        <p className="text-[10px] text-brand-muted/50 italic py-1">Empty block</p>
+                                        <p className="text-[10px] text-brand-muted/50 italic py-1">Open time window</p>
                                     ) : (
                                         daySessions.map((session) => (
                                             <div
                                                 key={session.id}
-                                                className={`p-2 border rounded-lg leading-normal group/item relative transition-all ${getSessionColorClass(
-                                                    session.type
-                                                )}`}
+                                                className={cn(
+                                                    "p-2 border rounded-md leading-normal group/item relative transition-all",
+                                                    getSessionColorClass(session.type)
+                                                )}
                                             >
                                                 <div className="flex justify-between items-start gap-1">
-                                                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                                    <div className="flex items-center gap-1 min-w-0 flex-1">
                                                         {getTypeIcon(session.type)}
-                                                        <p className="text-[11px] font-semibold truncate leading-none mt-0.5">
+                                                        <p className="text-[10.5px] font-semibold truncate leading-none mt-0.5">
                                                             {session.title}
                                                         </p>
                                                     </div>
                                                     <button
                                                         onClick={() => deletePlannerSession(session.id)}
-                                                        className="bg-transparent hover:text-red-400 hover:scale-105 pointer cursor-pointer opacity-0 group-hover/item:opacity-100 transition-opacity p-0.5"
+                                                        className="hover:text-red-400 cursor-pointer opacity-0 group-hover/item:opacity-100 transition-opacity p-0.5"
                                                     >
                                                         <Trash2 size={9} />
                                                     </button>
                                                 </div>
-                                                <p className="text-[8.5px] mt-1 font-mono uppercase tracking-wider">
+                                                <p className="text-[8.5px] mt-1 font-mono uppercase tracking-wider opacity-80">
                                                     {session.time}
                                                 </p>
                                             </div>
@@ -166,34 +213,38 @@ export default function PlannerPage() {
                                     )}
                                 </div>
 
-                                {/* 3. Show associated Today tasks */}
+                                {/* Scheduled Tasks */}
                                 {dayTasks.length > 0 && (
-                                    <div className="space-y-1.5">
-                                        <p className="text-[9px] font-bold text-teal-400 uppercase tracking-wider">Tasks</p>
-                                        {dayTasks.map(t => (
-                                            <div key={t.id} className="p-2 border border-brand-border bg-brand-bg rounded-lg text-brand-muted leading-tight">
-                                                <p className={`text-[10.5px] font-medium truncate ${t.completed && "line-through text-brand-muted/50"}`}>{t.title}</p>
-                                                <span className="text-[8.5px] text-brand-muted block mt-0.5">{t.category}</span>
+                                    <div className="space-y-1">
+                                        <p className="text-[9px] font-bold text-teal-400 uppercase tracking-wider">Scheduled Tasks</p>
+                                        {dayTasks.map((t) => (
+                                            <div
+                                                key={t.id}
+                                                className="p-1.5 border border-brand-border bg-brand-bg rounded-md text-brand-muted leading-tight text-[10px]"
+                                            >
+                                                <p className={cn("font-medium truncate", t.completed && "line-through text-brand-muted/50")}>
+                                                    {t.title}
+                                                </p>
                                             </div>
                                         ))}
                                     </div>
                                 )}
                             </div>
 
-                            {/* Add Session action button */}
+                            {/* Add Block Trigger */}
                             <button
                                 onClick={() => handleOpenAddSession(day)}
-                                className="mt-3.5 w-full flex items-center justify-center gap-1 py-1.5 border border-dashed border-brand-border/60 hover:border-brand-blue/30 text-[10.5px] font-bold uppercase tracking-wider text-brand-muted hover:text-white rounded-lg transition-all cursor-pointer bg-brand-bg/20"
+                                className="mt-3 w-full flex items-center justify-center gap-1 py-1.5 border border-dashed border-brand-border/60 hover:border-brand-blue/40 text-[10px] font-bold uppercase tracking-wider text-brand-muted hover:text-white rounded-lg transition-all cursor-pointer bg-brand-bg/20"
                             >
                                 <Plus size={11} />
-                                Add Session
+                                Plan Block
                             </button>
                         </div>
                     );
                 })}
             </div>
 
-            {/* -------------------- LOCAL ADD PLANNED BLOCK -------------------- */}
+            {/* Plan Session Modal */}
             <Modal
                 isOpen={isAddSessionOpen}
                 onClose={() => setIsAddSessionOpen(false)}
@@ -206,7 +257,7 @@ export default function PlannerPage() {
                         </label>
                         <input
                             type="text"
-                            placeholder="e.g. Deep Work: Redesign landing hero"
+                            placeholder="e.g. Deep Work: System Architecture & Database"
                             value={sessionTitle}
                             onChange={(e) => setSessionTitle(e.target.value)}
                             className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-sm focus:border-brand-blue outline-none"
@@ -224,7 +275,7 @@ export default function PlannerPage() {
                                 placeholder="e.g. 09:00 - 11:30"
                                 value={sessionTime}
                                 onChange={(e) => setSessionTime(e.target.value)}
-                                className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-sm focus:border-brand-blue outline-none"
+                                className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue outline-none"
                                 required
                             />
                         </div>
@@ -236,27 +287,39 @@ export default function PlannerPage() {
                             <select
                                 value={sessionType}
                                 onChange={(e) => setSessionType(e.target.value as any)}
-                                className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-sm focus:border-brand-blue"
+                                className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue"
                             >
-                                <option value="work">Work Session (Blue)</option>
+                                <option value="work">Work Focus (Blue)</option>
                                 <option value="study">Study Session (Green)</option>
-                                <option value="health">Recovery / Gym (Red)</option>
-                                <option value="personal">Personal Blocks (Gold)</option>
+                                <option value="health">Fitness / Health (Red)</option>
+                                <option value="personal">Personal Life (Gold)</option>
                             </select>
                         </div>
                     </div>
 
-                    <div className="flex gap-3 justify-end pt-3 border-t border-brand-border/40">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setIsAddSessionOpen(false)}
+                    <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">
+                            Life Area
+                        </label>
+                        <select
+                            value={sessionLifeArea}
+                            onChange={(e) => setSessionLifeArea(e.target.value)}
+                            className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue"
                         >
+                            {lifeAreas.map((area) => (
+                                <option key={area.id} value={area.id}>
+                                    {area.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="flex gap-3 justify-end pt-3 border-t border-brand-border/40">
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddSessionOpen(false)}>
                             Cancel
                         </Button>
-                        <Button type="submit" variant="primary" size="sm">
-                            Schedule block
+                        <Button type="submit" variant="primary" size="sm" className="font-semibold">
+                            Save Focus Block
                         </Button>
                     </div>
                 </form>

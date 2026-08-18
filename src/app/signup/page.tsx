@@ -42,12 +42,11 @@ export default function SignupPage() {
         }
 
         setLoading(true);
-        // Simulating user creation loading states
         setTimeout(() => {
             setLoading(false);
             setUserName(name.trim());
             router.push("/dashboard");
-        }, 1200);
+        }, 800);
     };
 
     const handleGoogleSignup = () => {
@@ -57,12 +56,12 @@ export default function SignupPage() {
             setLoading(false);
             setUserName("Julian");
             router.push("/dashboard");
-        }, 1000);
+        }, 700);
     };
 
     return (
         <div className="bg-[#080B12] text-brand-text flex-1 flex flex-col justify-center items-center px-6 py-12 relative overflow-hidden font-sans min-h-screen">
-            {/* Decorative Glow */}
+            {/* Glow Accent */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[350px] w-[350px] bg-brand-blue/5 rounded-full blur-[80px] pointer-events-none" />
 
             {/* Back button */}
@@ -77,20 +76,22 @@ export default function SignupPage() {
             <div className="w-full max-w-md bg-brand-surface border border-brand-border rounded-2xl p-8 shadow-2xl relative z-10 space-y-5">
                 {/* Header */}
                 <div className="text-center space-y-2">
-                    <Link href="/" className="inline-flex items-center gap-1.5 justify-center mb-2">
+                    <Link href="/" className="inline-flex items-center gap-2 justify-center mb-1">
                         <div className="h-7 w-7 rounded bg-brand-blue flex items-center justify-center">
-                            <span className="font-extrabold text-white text-xs">D</span>
+                            <span className="font-extrabold text-white text-xs">L</span>
                         </div>
-                        <span className="font-extrabold text-lg text-white">DailyDo</span>
+                        <span className="font-extrabold text-lg text-white">
+                            Lifeweft<span className="text-brand-gold">.</span>
+                        </span>
                     </Link>
-                    <h2 className="text-xl font-bold text-white tracking-tight">Create your account</h2>
-                    <p className="text-xs text-brand-muted">Get started free. Reclaim control of your daily routine.</p>
+                    <h2 className="text-xl font-bold text-white tracking-tight">Create your workspace</h2>
+                    <p className="text-xs text-brand-muted">Get started free. Reclaim control of your memory and life.</p>
                 </div>
 
                 {/* Validation Errors */}
                 {error && (
-                    <div className="bg-red-950/30 border border-red-900/40 text-red-400 p-3.5 rounded-lg flex items-start gap-2.5 text-xs leading-normal animate-shake">
-                        <ShieldAlert size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+                    <div className="bg-red-950/30 border border-red-900/40 text-red-400 p-3 rounded-lg flex items-start gap-2 text-xs leading-normal animate-shake">
+                        <ShieldAlert size={15} className="text-red-400 flex-shrink-0 mt-0.5" />
                         <span>{error}</span>
                     </div>
                 )}
@@ -187,14 +188,14 @@ export default function SignupPage() {
                         loading={loading}
                         className="w-full py-3 justify-center text-xs font-bold uppercase tracking-wider"
                     >
-                        Create Account
+                        Create Workspace
                     </Button>
                 </form>
 
                 {/* Separator */}
                 <div className="flex items-center gap-3 text-xs text-brand-muted py-0.5">
                     <div className="h-[1px] bg-brand-border/40 flex-1" />
-                    <span>or join with</span>
+                    <span>or continue with</span>
                     <div className="h-[1px] bg-brand-border/40 flex-1" />
                 </div>
 
@@ -223,14 +224,14 @@ export default function SignupPage() {
                             fill="#EA4335"
                         />
                     </svg>
-                    Google
+                    <span>Sign up with Google</span>
                 </button>
 
                 {/* Login redirection */}
                 <p className="text-xs text-brand-muted text-center pt-2 select-text">
-                    Already have an account?{" "}
+                    Already have a workspace?{" "}
                     <Link href="/login" className="text-brand-blue font-semibold hover:underline">
-                        Log in here
+                        Sign in here
                     </Link>
                 </p>
             </div>

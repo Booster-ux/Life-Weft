@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DailyDo — Your Day. Your Priorities. Your DailyDo.",
-  description: "Organize your tasks, deadlines, plans, and everyday responsibilities in one simple daily command center.",
-  keywords: ["planner", "task manager", "daily assistant", "student organizer", "life admin", "decisions organizer", "knowledge base"],
+  title: "Lifeweft — Personal Life-Management & Memory Workspace",
+  description: "A calm, personal workspace to manage what you need to do, remember, decide, plan, and learn across every area of your life.",
+  keywords: ["lifeweft", "life management", "personal ledger", "memory workspace", "decision journal", "planner", "deadlines", "knowledge base"],
 };
 
 export default function RootLayout({

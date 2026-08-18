@@ -35,15 +35,13 @@ export default function LoginPage() {
         }
 
         setLoading(true);
-        // Simulating authentication load
         setTimeout(() => {
             setLoading(false);
-            // Derive a mock name for local storage
             const derivedName = email.split("@")[0];
             const capitalizedName = derivedName.charAt(0).toUpperCase() + derivedName.slice(1);
             setUserName(capitalizedName);
             router.push("/dashboard");
-        }, 1200);
+        }, 800);
     };
 
     const handleGoogleLogin = () => {
@@ -53,12 +51,12 @@ export default function LoginPage() {
             setLoading(false);
             setUserName("Julian");
             router.push("/dashboard");
-        }, 1000);
+        }, 700);
     };
 
     return (
         <div className="bg-[#080B12] text-brand-text flex-1 flex flex-col justify-center items-center px-6 py-12 relative overflow-hidden font-sans min-h-screen">
-            {/* Decorative Glow */}
+            {/* Glow Accent */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[350px] w-[350px] bg-brand-blue/5 rounded-full blur-[80px] pointer-events-none" />
 
             {/* Back button */}
@@ -73,20 +71,22 @@ export default function LoginPage() {
             <div className="w-full max-w-md bg-brand-surface border border-brand-border rounded-2xl p-8 shadow-2xl relative z-10 space-y-6">
                 {/* Header */}
                 <div className="text-center space-y-2">
-                    <Link href="/" className="inline-flex items-center gap-1.5 justify-center mb-2">
+                    <Link href="/" className="inline-flex items-center gap-2 justify-center mb-1">
                         <div className="h-7 w-7 rounded bg-brand-blue flex items-center justify-center">
-                            <span className="font-extrabold text-white text-xs">D</span>
+                            <span className="font-extrabold text-white text-xs">L</span>
                         </div>
-                        <span className="font-extrabold text-lg text-white">DailyDo</span>
+                        <span className="font-extrabold text-lg text-white">
+                            Lifeweft<span className="text-brand-gold">.</span>
+                        </span>
                     </Link>
                     <h2 className="text-xl font-bold text-white tracking-tight">Welcome back</h2>
-                    <p className="text-xs text-brand-muted">Enter your credentials to access your daily command center.</p>
+                    <p className="text-xs text-brand-muted">Sign in to access your personal life-management workspace.</p>
                 </div>
 
                 {/* Validation Errors */}
                 {error && (
-                    <div className="bg-red-950/30 border border-red-900/40 text-red-400 p-3.5 rounded-lg flex items-start gap-2.5 text-xs leading-normal animate-shake">
-                        <ShieldAlert size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+                    <div className="bg-red-950/30 border border-red-900/40 text-red-400 p-3 rounded-lg flex items-start gap-2 text-xs leading-normal animate-shake">
+                        <ShieldAlert size={15} className="text-red-400 flex-shrink-0 mt-0.5" />
                         <span>{error}</span>
                     </div>
                 )}
@@ -121,7 +121,7 @@ export default function LoginPage() {
                             </label>
                             <button
                                 type="button"
-                                onClick={() => alert("Password reset link sent (Mock implementation).")}
+                                onClick={() => alert("Simulation: Password reset link dispatched.")}
                                 className="text-[10px] text-brand-blue hover:underline cursor-pointer"
                             >
                                 Forgot Password?
@@ -150,7 +150,7 @@ export default function LoginPage() {
                         loading={loading}
                         className="w-full py-3 justify-center text-xs font-bold uppercase tracking-wider"
                     >
-                        Continue
+                        Sign in
                     </Button>
                 </form>
 
@@ -186,14 +186,14 @@ export default function LoginPage() {
                             fill="#EA4335"
                         />
                     </svg>
-                    Google
+                    <span>Continue with Google</span>
                 </button>
 
                 {/* Signup redirection */}
                 <p className="text-xs text-brand-muted text-center pt-2 select-text">
                     Don't have an account?{" "}
                     <Link href="/signup" className="text-brand-blue font-semibold hover:underline">
-                        Sign up for free
+                        Create free workspace
                     </Link>
                 </p>
             </div>

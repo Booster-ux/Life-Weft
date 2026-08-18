@@ -1,355 +1,490 @@
 "use client";
 
 import React, { useState } from "react";
-import { useApp } from "@/context/AppContext";
+import { useApp, Decision } from "@/context/AppContext";
 import { Button } from "@/components/ui/Button";
-import { GitFork, Lightbulb, Scale, Sparkles, Check, Trash2, ArrowRight, CornerDownRight } from "lucide-react";
+import { Modal } from "@/components/ui/Modal";
+import {
+    GitFork,
+    Lightbulb,
+    Scale,
+    Sparkles,
+    Check,
+    Trash2,
+    ArrowRight,
+    Plus,
+    Tag,
+    Edit2,
+    Calendar,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function DecisionsPage() {
-    const { decisions, addDecision, deleteDecision } = useApp();
+    const { decisions, addDecision, updateDecision, deleteDecision, lifeAreas } = useApp();
 
-    const [situation, setSituation] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [analyzedItem, setAnalyzedItem] = useState<typeof decisions[0] | null>(null);
+    const [selectedDecision, setSelectedDecision] = useState<Decision | null>(decisions[0] || null);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-    // Suggestions that users can click to pre-fill
-    const SUGGESTIONS = [
-        {
-            label: "Should I buy this new laptop upgrade?",
-            situation: "Should I buy the M4 MacBook Pro upgrade for $1,999?",
-            options: [
-                {
-                    name: "Option A: Buy now",
-                    pros: ["20% faster builds", "Stunning display", "Reliable battery life for remote work"],
-                    cons: ["High cost", "Existing M1 laptop still functions fine", "Financial liquidity reduction"],
-                    cost: "$1,999",
-                    time: "Immediate upgrade",
-                    risks: "Buyer's remorse if performance increase doesn't affect hourly rate"
-                },
-                {
-                    name: "Option B: Wait 6 months",
-                    pros: ["Save money for investments", "Price drops or discounts downstream"],
-                    cons: ["Dealing with minor stuttering", "Missing out on potential efficiency yields"],
-                    cost: "$0 (Deferred)",
-                    time: "6 Months",
-                    risks: "Slight velocity loss on work deliverables"
-                }
-            ],
-            recommendedStep: "Run a system diagnostic check. If CPU bottleneck is costing you >1 hour of waiting time weekly, pull the trigger. Otherwise, wait until Black Friday discounts."
-        },
-        {
-            label: "Rent vs Buy local townhouse?",
-            situation: "Should I sign a 2-year lease or make a downpayment on a 2BC condo?",
-            options: [
-                {
-                    name: "Option A: Sign lease (Rent)",
-                    pros: ["High mobility", "Zero maintenance overheads", "Predictable monthly cash flow"],
-                    cons: ["No equity growth", "Subject to rent hikes", "Decorating restrictions"],
-                    cost: "Medium monthly cost",
-                    time: "24-Month commitment",
-                    risks: "Sunk capital on housing costs"
-                },
-                {
-                    name: "Option B: Invest / buy condo",
-                    pros: ["Real asset ownership", "Fixed-rate mortgage stability", "Tax write-offs potential"],
-                    cons: ["Huge cash downpayment required", "HOA monthly fees", "Transaction costs to buy/sell"],
-                    cost: "High upfront cost",
-                    time: "10+ Years typical",
-                    risks: "Interest rate fluctuations or property value drop"
-                }
-            ],
-            recommendedStep: "Compare cap rates. If mortgage interest + HOA is significantly higher than equivalent rent, renting represents a safer bet. Rent and invest the downpayment difference."
-        },
-        {
-            label: "Side project focus vs Freelance client work?",
-            situation: "How should I allocate my 15 weekly side-hours?",
-            options: [
-                {
-                    name: "Option A: Build SaaS Startup (DailyDo features)",
-                    pros: ["Create passive income potential", "Full creative license", "Scale leverage"],
-                    cons: ["Zero immediate income guarantee", "High likelihood of launch failure", "Hard to get users"],
-                    cost: "$20/month base",
-                    time: "6-12 Months to MVP",
-                    risks: "Opportunity cost of lost wages"
-                },
-                {
-                    name: "Option B: Freelance Client Retainers",
-                    pros: ["Immediate predictable cash inflow ($80/hr)", "Build client references", "Definite return on effort"],
-                    cons: ["Trading hours for dollars", "Clients own work rights", "Less scaling potential"],
-                    cost: "$0",
-                    time: "Weekly billing cycles",
-                    risks: "Limits long-term wealth assets creation"
-                }
-            ],
-            recommendedStep: "Run a hybrid allocation: 80% freelancing initially to secure a 3-month savings reserve. Once secure, transition to 50% freelancing and 50% SaaS incubation."
-        }
-    ];
+    // Form states for creation
+    const [decisionTitle, setDecisionTitle] = useState("");
+    const [decisionSituation, setDecisionSituation] = useState("");
+    const [decisionStatus, setDecisionStatus] = useState<Decision["status"]>("Under Consideration");
+    const [chosenOption, setChosenOption] = useState("");
+    const [reason, setReason] = useState("");
+    const [expectedOutcome, setExpectedOutcome] = useState("");
+    const [actualOutcome, setActualOutcome] = useState("");
+    const [lifeAreaId, setLifeAreaId] = useState("area-business");
 
-    const handleSuggestionClick = (sugg: typeof SUGGESTIONS[0]) => {
-        setSituation(sugg.situation);
-        // Auto simulate analyzing
-        setLoading(true);
-        setTimeout(() => {
-            setLoading(false);
-            // Construct a mock item
-            const mockResult = {
-                id: "mock" + Math.random().toString(36).substr(2, 9),
-                situation: sugg.situation,
-                options: sugg.options,
-                recommendedStep: sugg.recommendedStep,
-                createdAt: new Date().toISOString().split("T")[0]
-            };
-            setAnalyzedItem(mockResult);
-            // Also commit to global state
-            addDecision(sugg.situation, sugg.options, sugg.recommendedStep);
-        }, 900);
+    // Option 1
+    const [opt1Name, setOpt1Name] = useState("");
+    const [opt1Pros, setOpt1Pros] = useState("");
+    const [opt1Cons, setOpt1Cons] = useState("");
+    const [opt1Cost, setOpt1Cost] = useState("Low");
+    const [opt1Time, setOpt1Time] = useState("Weeks");
+    const [opt1Risks, setOpt1Risks] = useState("");
+
+    // Option 2
+    const [opt2Name, setOpt2Name] = useState("");
+    const [opt2Pros, setOpt2Pros] = useState("");
+    const [opt2Cons, setOpt2Cons] = useState("");
+    const [opt2Cost, setOpt2Cost] = useState("Medium");
+    const [opt2Time, setOpt2Time] = useState("Months");
+    const [opt2Risks, setOpt2Risks] = useState("");
+
+    const handleOpenCreateModal = () => {
+        setDecisionTitle("");
+        setDecisionSituation("");
+        setDecisionStatus("Under Consideration");
+        setChosenOption("");
+        setReason("");
+        setExpectedOutcome("");
+        setActualOutcome("");
+        setLifeAreaId(lifeAreas[0]?.id || "area-business");
+
+        setOpt1Name("Option A");
+        setOpt1Pros("High initial velocity, lower capital requirement");
+        setOpt1Cons("Maintenance overhead downstream");
+        setOpt1Cost("Low");
+        setOpt1Time("2-4 Weeks");
+        setOpt1Risks("Moderate technical debt");
+
+        setOpt2Name("Option B");
+        setOpt2Pros("Scalable foundation, robust data integrity");
+        setOpt2Cons("Higher upfront learning curve");
+        setOpt2Cost("Medium");
+        setOpt2Time("1-2 Months");
+        setOpt2Risks("Slower initial deployment");
+
+        setIsCreateModalOpen(true);
     };
 
-    const handleCustomAnalyze = (e: React.FormEvent) => {
+    const handleCreateSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!situation.trim()) return;
+        if (!decisionTitle.trim() || !decisionSituation.trim()) return;
 
-        setLoading(true);
-        setTimeout(() => {
-            setLoading(false);
-            const mockOptions = [
-                {
-                    name: "Option 1: Proceed with action",
-                    pros: ["Gain experience", "Clear progress indicator", "Potential high upside"],
-                    cons: ["Requires energy/resources", "Might disrupt current routine"],
-                    cost: "Variable",
-                    time: "Short-term",
-                    risks: "Moderate adjustment curve"
-                },
-                {
-                    name: "Option 2: Status quo (Do nothing)",
-                    pros: ["Saves time and money", "Predictable stress levels", "High consistency"],
-                    cons: ["Opportunity cost of inaction", "Potential regret downstream"],
-                    cost: "Nil",
-                    time: "None",
-                    risks: "Stagnation"
-                }
-            ];
-            const mockRecommendation = "Run a small 5-day script experiment. Test the assumptions with minimal energy to collect feedback before scaling the decision commitments.";
+        const newOptions = [
+            {
+                name: opt1Name.trim() || "Option A",
+                pros: opt1Pros.split(",").map(s => s.trim()).filter(Boolean),
+                cons: opt1Cons.split(",").map(s => s.trim()).filter(Boolean),
+                cost: opt1Cost,
+                time: opt1Time,
+                risks: opt1Risks || "Low risk",
+            },
+            {
+                name: opt2Name.trim() || "Option B",
+                pros: opt2Pros.split(",").map(s => s.trim()).filter(Boolean),
+                cons: opt2Cons.split(",").map(s => s.trim()).filter(Boolean),
+                cost: opt2Cost,
+                time: opt2Time,
+                risks: opt2Risks || "Low risk",
+            },
+        ];
 
-            const newItem = {
-                id: "mock" + Math.random().toString(36).substr(2, 9),
-                situation: situation.trim(),
-                options: mockOptions,
-                recommendedStep: mockRecommendation,
-                createdAt: new Date().toISOString().split("T")[0]
-            };
+        addDecision({
+            title: decisionTitle.trim(),
+            situation: decisionSituation.trim(),
+            options: newOptions,
+            chosenOption: chosenOption.trim() || undefined,
+            reason: reason.trim() || undefined,
+            expectedOutcome: expectedOutcome.trim() || undefined,
+            actualOutcome: actualOutcome.trim() || undefined,
+            status: decisionStatus,
+            lifeAreaId,
+        });
 
-            setAnalyzedItem(newItem);
-            addDecision(situation.trim(), mockOptions, mockRecommendation);
-        }, 1200);
+        setIsCreateModalOpen(false);
     };
 
     return (
         <div className="space-y-6">
-            {/* Page Header */}
-            <div>
-                <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-2">
-                    <GitFork className="text-brand-blue" />
-                    Smart Decisions
-                </h1>
-                <p className="text-sm text-brand-muted mt-1 leading-none">
-                    Give DailyDo the situation. We'll help you structure, compare, and recommend pathing options.
-                </p>
-            </div>
-
-            {/* Main interactive grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-                {/* Left column: Decision Situation Input */}
-                <div className="lg:col-span-1 space-y-5">
-                    <div className="bg-brand-surface border border-brand-border rounded-xl p-5 shadow-sm space-y-4">
-                        <h3 className="text-xs font-bold text-brand-muted uppercase tracking-wider block">
-                            What are you trying to decide?
-                        </h3>
-
-                        <form onSubmit={handleCustomAnalyze} className="space-y-3.5">
-                            <textarea
-                                placeholder="e.g. Should I rent a space downtown or continue working from home?"
-                                value={situation}
-                                onChange={(e) => setSituation(e.target.value)}
-                                rows={4}
-                                className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg p-3 text-sm focus:border-brand-blue outline-none resize-none leading-relaxed"
-                                required
-                            />
-
-                            <Button
-                                type="submit"
-                                variant="accent"
-                                loading={loading}
-                                className="w-full py-2.5 justify-center text-xs font-bold uppercase tracking-wider"
-                            >
-                                Assemble Analysis
-                            </Button>
-                        </form>
-                    </div>
-
-                    {/* Suggestions List */}
-                    <div className="space-y-2">
-                        <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">Example Templates</p>
-                        <div className="space-y-1.5">
-                            {SUGGESTIONS.map((sugg, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => handleSuggestionClick(sugg)}
-                                    className="w-full text-left p-3.5 bg-brand-surface hover:bg-brand-border/40 border border-brand-border rounded-lg text-xs text-brand-muted hover:text-white transition-all cursor-pointer font-medium leading-normal flex justify-between items-center group"
-                                >
-                                    <span className="truncate">{sugg.label}</span>
-                                    <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0 text-brand-blue" />
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-2">
+                        <GitFork className="text-indigo-400" />
+                        Decision Journal
+                    </h1>
+                    <p className="text-sm text-brand-muted mt-1 leading-none">
+                        Document strategic dilemmas, trade-offs, chosen paths, and post-outcome reviews.
+                    </p>
                 </div>
 
-                {/* Right column: Formatted Analysis preview result */}
-                <div className="lg:col-span-2 space-y-6">
-                    {loading ? (
-                        <div className="bg-brand-surface/40 border border-brand-border rounded-xl p-12 text-center space-y-4 min-h-[400px] flex flex-col justify-center items-center">
-                            <div className="relative h-12 w-12 rounded-full border-t-2 border-brand-blue animate-spin" />
-                            <p className="text-xs text-brand-muted font-semibold tracking-wider uppercase animate-pulse">
-                                Assembling Options, Weighting Cons & Risk Profiles...
-                            </p>
-                        </div>
-                    ) : analyzedItem ? (
-                        <div className="bg-brand-surface border border-brand-border rounded-xl p-6.5 shadow-xl space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                <Button
+                    onClick={handleOpenCreateModal}
+                    variant="primary"
+                    size="sm"
+                    className="font-bold flex items-center gap-1.5 text-xs"
+                >
+                    <Plus size={16} />
+                    Log New Decision
+                </Button>
+            </div>
 
-                            {/* Situation heading */}
-                            <div className="flex justify-between items-start gap-4">
-                                <div className="space-y-1">
-                                    <span className="text-[10px] bg-brand-blue/10 border border-brand-blue/20 text-brand-blue font-bold px-2 py-0.5 rounded leading-none">
-                                        Structured Analysis
-                                    </span>
-                                    <h2 className="text-base font-bold text-white leading-snug select-text">
-                                        "{analyzedItem.situation}"
-                                    </h2>
-                                </div>
-                                <button
-                                    onClick={() => setAnalyzedItem(null)}
-                                    className="text-xs text-brand-muted hover:text-brand-text cursor-pointer"
-                                >
-                                    Clear
-                                </button>
-                            </div>
+            {/* Main Interactive Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left Column: List of Saved Decisions */}
+                <div className="lg:col-span-1 space-y-3">
+                    <h3 className="text-xs font-bold text-brand-muted uppercase tracking-wider">
+                        Recorded Decisions ({decisions.length})
+                    </h3>
 
-                            {/* Options mapping details */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5.5 pt-1.5">
-                                {analyzedItem.options.map((opt, oIdx) => (
-                                    <div key={oIdx} className="bg-brand-bg/60 border border-brand-border/60 rounded-lg p-4 space-y-3.5">
-                                        <h4 className="font-bold text-xs text-white border-b border-brand-border/60 pb-1.5 uppercase tracking-wide">
-                                            {opt.name}
-                                        </h4>
-
-                                        {/* Pros */}
-                                        <div className="space-y-1.5">
-                                            <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">Pros</p>
-                                            <ul className="space-y-1 pl-1">
-                                                {opt.pros.map((pro, pIdx) => (
-                                                    <li key={pIdx} className="text-xs text-brand-text flex items-start gap-1.5 leading-snug">
-                                                        <span className="text-emerald-400 text-[10px] mt-0.5 flex-shrink-0">✓</span>
-                                                        <span>{pro}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-
-                                        {/* Cons */}
-                                        <div className="space-y-1.5">
-                                            <p className="text-[9px] font-bold text-rose-400 uppercase tracking-widest">Cons</p>
-                                            <ul className="space-y-1 pl-1">
-                                                {opt.cons.map((con, cIdx) => (
-                                                    <li key={cIdx} className="text-xs text-brand-muted flex items-start gap-1.5 leading-snug">
-                                                        <span className="text-rose-400 text-[10px] mt-0.5 flex-shrink-0">×</span>
-                                                        <span>{con}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-
-                                        {/* Parameters grid */}
-                                        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-brand-border/40 text-[10px]">
-                                            <div>
-                                                <span className="text-brand-muted block">Cost:</span>
-                                                <span className="font-bold text-white">{opt.cost}</span>
-                                            </div>
-                                            <div>
-                                                <span className="text-brand-muted block">Time:</span>
-                                                <span className="font-bold text-white">{opt.time}</span>
-                                            </div>
-                                            <div>
-                                                <span className="text-brand-muted block">Risk:</span>
-                                                <span className="font-semibold text-brand-gold truncate block">{opt.risks}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Recommended Direction */}
-                            <div className="bg-brand-blue/5 border border-brand-blue/20 rounded-lg p-4 space-y-2">
-                                <h4 className="text-xs font-bold text-brand-blue uppercase tracking-widest flex items-center gap-1.5 leading-none">
-                                    <Sparkles size={13} className="text-brand-gold" />
-                                    Recommended Next Step
-                                </h4>
-                                <p className="text-xs text-brand-text leading-relaxed select-text pl-1.5 border-l border-brand-blue/40">
-                                    {analyzedItem.recommendedStep}
-                                </p>
-                            </div>
+                    {decisions.length === 0 ? (
+                        <div className="bg-brand-surface/40 border border-brand-border/60 border-dashed rounded-xl p-8 text-center text-brand-muted text-xs">
+                            No decisions recorded yet.
                         </div>
                     ) : (
-                        <div className="bg-brand-surface/20 border border-brand-border border-dashed rounded-xl p-12 text-center min-h-[400px] flex flex-col justify-center items-center space-y-3.5">
-                            <div className="h-10 w-10 rounded-full border border-brand-border flex items-center justify-center text-brand-muted">
-                                <Scale size={20} />
-                            </div>
-                            <div>
-                                <h3 className="text-sm font-bold text-white">Analysis Workspace Ready</h3>
-                                <p className="text-xs text-brand-muted mt-1 max-w-sm leading-relaxed">
-                                    Submit your custom queries on the left panel or click a preloaded template card to mock test paths.
-                                </p>
-                            </div>
+                        <div className="space-y-2">
+                            {decisions.map((dec) => {
+                                const isSelected = selectedDecision?.id === dec.id;
+                                return (
+                                    <div
+                                        key={dec.id}
+                                        onClick={() => setSelectedDecision(dec)}
+                                        className={cn(
+                                            "p-4 bg-brand-surface border rounded-xl cursor-pointer transition-all duration-150 group space-y-1.5",
+                                            isSelected
+                                                ? "border-brand-blue bg-brand-surface shadow-md"
+                                                : "border-brand-border hover:border-brand-border/80"
+                                        )}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span
+                                                className={cn(
+                                                    "text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider border",
+                                                    dec.status === "Decided"
+                                                        ? "bg-emerald-950/20 text-emerald-400 border-emerald-900/40"
+                                                        : dec.status === "Reviewed"
+                                                            ? "bg-brand-blue/10 text-brand-blue border-brand-blue/30"
+                                                            : "bg-brand-gold/10 text-brand-gold border-brand-gold/30"
+                                                )}
+                                            >
+                                                {dec.status}
+                                            </span>
+                                            <span className="text-[10px] text-brand-muted font-mono">{dec.createdAt}</span>
+                                        </div>
+
+                                        <h4 className="text-xs font-bold text-brand-text group-hover:text-white line-clamp-1">
+                                            {dec.title || dec.situation}
+                                        </h4>
+
+                                        <p className="text-[11px] text-brand-muted line-clamp-2">
+                                            {dec.situation}
+                                        </p>
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
+                </div>
 
-                    {/* Past Decisions List */}
-                    {decisions.length > 0 && (
-                        <div className="space-y-3 pt-6 border-t border-brand-border/40">
-                            <h3 className="text-xs font-bold text-brand-muted uppercase tracking-wider">
-                                Saved Analyses History ({decisions.length})
-                            </h3>
-                            <div className="space-y-2">
-                                {decisions.map((dec) => (
-                                    <div key={dec.id} className="bg-brand-surface border border-brand-border rounded-lg p-3.5 flex justify-between items-center group">
-                                        <div className="min-w-0 pr-4">
-                                            <p className="text-xs font-bold text-white truncate">"{dec.situation}"</p>
-                                            <p className="text-[10px] text-brand-muted mt-1 leading-none">Simulated: {dec.createdAt}</p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => setAnalyzedItem(dec)}
-                                                className="text-[11px] text-brand-blue hover:underline cursor-pointer"
-                                            >
-                                                Restore
-                                            </button>
-                                            <button
-                                                onClick={() => deleteDecision(dec.id)}
-                                                className="p-1 rounded text-brand-muted hover:text-red-400 cursor-pointer"
-                                                title="Delete Decision Log"
-                                            >
-                                                <Trash2 size={12} />
-                                            </button>
-                                        </div>
+                {/* Right 2 Columns: Detailed Decision View */}
+                <div className="lg:col-span-2">
+                    {selectedDecision ? (
+                        <div className="bg-brand-surface border border-brand-border rounded-xl p-6 shadow-xl space-y-6 animate-in fade-in duration-150">
+                            {/* Decision Header */}
+                            <div className="flex flex-wrap justify-between items-start gap-4 border-b border-brand-border/40 pb-4">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] bg-brand-blue/10 border border-brand-blue/20 text-brand-blue font-bold px-2 py-0.5 rounded">
+                                            Decision Record
+                                        </span>
+                                        <span className="text-[10px] text-brand-muted font-mono">
+                                            Logged: {selectedDecision.createdAt}
+                                        </span>
                                     </div>
-                                ))}
+                                    <h2 className="text-lg font-black text-white tracking-tight">
+                                        {selectedDecision.title || selectedDecision.situation}
+                                    </h2>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => deleteDecision(selectedDecision.id)}
+                                        className="p-1.5 text-brand-muted hover:text-red-400 rounded transition-colors cursor-pointer"
+                                        title="Delete decision"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
                             </div>
+
+                            {/* Situation Context */}
+                            <div className="space-y-1 bg-brand-bg/40 border border-brand-border/60 rounded-lg p-3.5">
+                                <h4 className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">
+                                    Situation & Dilemma
+                                </h4>
+                                <p className="text-xs text-brand-text leading-relaxed select-text">
+                                    {selectedDecision.situation}
+                                </p>
+                            </div>
+
+                            {/* Evaluated Options Comparison */}
+                            <div className="space-y-2">
+                                <h4 className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">
+                                    Options Evaluated
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {selectedDecision.options.map((opt, idx) => (
+                                        <div
+                                            key={idx}
+                                            className="bg-brand-bg/60 border border-brand-border/60 rounded-lg p-4 space-y-3"
+                                        >
+                                            <h5 className="font-bold text-xs text-white border-b border-brand-border/60 pb-1.5">
+                                                {opt.name}
+                                            </h5>
+
+                                            {/* Pros */}
+                                            <div className="space-y-1">
+                                                <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">Pros</p>
+                                                <ul className="space-y-1 pl-1">
+                                                    {opt.pros.map((p, pIdx) => (
+                                                        <li key={pIdx} className="text-xs text-brand-text flex items-start gap-1.5 leading-snug">
+                                                            <span className="text-emerald-400 text-[10px] mt-0.5">✓</span>
+                                                            <span>{p}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+
+                                            {/* Cons */}
+                                            <div className="space-y-1">
+                                                <p className="text-[9px] font-bold text-rose-400 uppercase tracking-widest">Cons</p>
+                                                <ul className="space-y-1 pl-1">
+                                                    {opt.cons.map((c, cIdx) => (
+                                                        <li key={cIdx} className="text-xs text-brand-muted flex items-start gap-1.5 leading-snug">
+                                                            <span className="text-rose-400 text-[10px] mt-0.5">×</span>
+                                                            <span>{c}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+
+                                            {/* Meta */}
+                                            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-brand-border/40 text-[10px]">
+                                                <div>
+                                                    <span className="text-brand-muted block">Cost:</span>
+                                                    <span className="font-bold text-white">{opt.cost}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-brand-muted block">Time:</span>
+                                                    <span className="font-bold text-white">{opt.time}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-brand-muted block">Risk:</span>
+                                                    <span className="font-semibold text-brand-gold truncate block">{opt.risks}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Chosen Option & Rationale */}
+                            <div className="bg-brand-blue/5 border border-brand-blue/20 rounded-lg p-4 space-y-2">
+                                <h4 className="text-xs font-bold text-brand-blue uppercase tracking-widest flex items-center gap-1.5 leading-none">
+                                    <Check size={13} className="text-brand-gold" />
+                                    Chosen Path & Rationale
+                                </h4>
+                                <p className="text-xs font-bold text-white">
+                                    {selectedDecision.chosenOption || "Under Active Evaluation"}
+                                </p>
+                                {selectedDecision.reason && (
+                                    <p className="text-xs text-brand-muted leading-relaxed">
+                                        <b>Why:</b> {selectedDecision.reason}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Outcome Reflection */}
+                            {(selectedDecision.expectedOutcome || selectedDecision.actualOutcome) && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                                    {selectedDecision.expectedOutcome && (
+                                        <div className="bg-brand-bg/40 border border-brand-border/60 rounded-lg p-3 space-y-1">
+                                            <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">Expected Outcome</p>
+                                            <p className="text-xs text-brand-text leading-relaxed">{selectedDecision.expectedOutcome}</p>
+                                        </div>
+                                    )}
+
+                                    {selectedDecision.actualOutcome && (
+                                        <div className="bg-brand-bg/40 border border-brand-border/60 rounded-lg p-3 space-y-1">
+                                            <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Actual Outcome</p>
+                                            <p className="text-xs text-brand-text leading-relaxed">{selectedDecision.actualOutcome}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="bg-brand-surface/20 border border-brand-border border-dashed rounded-xl p-12 text-center min-h-[400px] flex flex-col justify-center items-center space-y-3">
+                            <Scale size={28} className="text-brand-muted" />
+                            <h3 className="text-sm font-bold text-white">Decision Journal Ready</h3>
+                            <p className="text-xs text-brand-muted max-w-sm">
+                                Select a decision from the left panel or click "Log New Decision" to document options and trade-offs.
+                            </p>
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* Log New Decision Modal */}
+            <Modal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                title="Log Strategic Decision"
+                className="max-w-2xl"
+            >
+                <form onSubmit={handleCreateSubmit} className="space-y-4">
+                    <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">Decision Title</label>
+                        <input
+                            type="text"
+                            placeholder="e.g. Supabase vs Firebase for Database & Auth"
+                            value={decisionTitle}
+                            onChange={(e) => setDecisionTitle(e.target.value)}
+                            className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-sm focus:border-brand-blue outline-none"
+                            required
+                        />
+                    </div>
+
+                    <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">Situation & Dilemma</label>
+                        <textarea
+                            rows={3}
+                            placeholder="What dilemma or fork in the road are you facing?"
+                            value={decisionSituation}
+                            onChange={(e) => setDecisionSituation(e.target.value)}
+                            className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg p-3 text-xs focus:border-brand-blue outline-none resize-none"
+                            required
+                        />
+                    </div>
+
+                    {/* Options Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        {/* Option 1 */}
+                        <div className="bg-brand-bg p-3 rounded-lg border border-brand-border space-y-2">
+                            <label className="text-[10px] font-bold text-brand-blue uppercase tracking-wider block">Option A</label>
+                            <input
+                                type="text"
+                                placeholder="Option A Name"
+                                value={opt1Name}
+                                onChange={(e) => setOpt1Name(e.target.value)}
+                                className="w-full bg-brand-surface text-brand-text border border-brand-border rounded px-2.5 py-1.5 text-xs"
+                                required
+                            />
+                            <input
+                                type="text"
+                                placeholder="Pros (comma separated)"
+                                value={opt1Pros}
+                                onChange={(e) => setOpt1Pros(e.target.value)}
+                                className="w-full bg-brand-surface text-brand-text border border-brand-border rounded px-2.5 py-1.5 text-xs"
+                            />
+                            <input
+                                type="text"
+                                placeholder="Cons (comma separated)"
+                                value={opt1Cons}
+                                onChange={(e) => setOpt1Cons(e.target.value)}
+                                className="w-full bg-brand-surface text-brand-text border border-brand-border rounded px-2.5 py-1.5 text-xs"
+                            />
+                        </div>
+
+                        {/* Option 2 */}
+                        <div className="bg-brand-bg p-3 rounded-lg border border-brand-border space-y-2">
+                            <label className="text-[10px] font-bold text-brand-gold uppercase tracking-wider block">Option B</label>
+                            <input
+                                type="text"
+                                placeholder="Option B Name"
+                                value={opt2Name}
+                                onChange={(e) => setOpt2Name(e.target.value)}
+                                className="w-full bg-brand-surface text-brand-text border border-brand-border rounded px-2.5 py-1.5 text-xs"
+                                required
+                            />
+                            <input
+                                type="text"
+                                placeholder="Pros (comma separated)"
+                                value={opt2Pros}
+                                onChange={(e) => setOpt2Pros(e.target.value)}
+                                className="w-full bg-brand-surface text-brand-text border border-brand-border rounded px-2.5 py-1.5 text-xs"
+                            />
+                            <input
+                                type="text"
+                                placeholder="Cons (comma separated)"
+                                value={opt2Cons}
+                                onChange={(e) => setOpt2Cons(e.target.value)}
+                                className="w-full bg-brand-surface text-brand-text border border-brand-border rounded px-2.5 py-1.5 text-xs"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                            <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">Chosen Option (If decided)</label>
+                            <input
+                                type="text"
+                                placeholder="e.g. Option A: Supabase"
+                                value={chosenOption}
+                                onChange={(e) => setChosenOption(e.target.value)}
+                                className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue outline-none"
+                            />
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">Decision Status</label>
+                            <select
+                                value={decisionStatus}
+                                onChange={(e) => setDecisionStatus(e.target.value as any)}
+                                className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue"
+                            >
+                                <option value="Under Consideration">Under Consideration</option>
+                                <option value="Decided">Decided</option>
+                                <option value="Reviewed">Reviewed</option>
+                                <option value="Archived">Archived</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">Reason for choice</label>
+                        <input
+                            type="text"
+                            placeholder="Why did you select this path over the alternatives?"
+                            value={reason}
+                            onChange={(e) => setReason(e.target.value)}
+                            className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue outline-none"
+                        />
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-3 border-t border-brand-border/40">
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setIsCreateModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" variant="primary" size="sm" className="font-semibold">
+                            Commit Decision
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 }
