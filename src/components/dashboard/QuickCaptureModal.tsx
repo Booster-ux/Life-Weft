@@ -186,7 +186,7 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
                             <button
                                 key={tab.id}
                                 type="button"
-                                onClick={() => setCaptureType(tab.id as any)}
+                                onClick={() => setCaptureType(tab.id as "task" | "ledger" | "note" | "deadline" | "decision")}
                                 className={cn(
                                     "flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2 px-1 rounded-md font-semibold transition-all cursor-pointer",
                                     isActive
@@ -299,7 +299,7 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
                             <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">Priority</label>
                             <select
                                 value={taskPriority}
-                                onChange={(e) => setTaskPriority(e.target.value as any)}
+                                onChange={(e) => setTaskPriority(e.target.value as "high" | "normal" | "low")}
                                 className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue"
                             >
                                 <option value="normal">Normal Priority</option>
@@ -344,7 +344,7 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
                             <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">Category</label>
                             <select
                                 value={noteCategory}
-                                onChange={(e) => setNoteCategory(e.target.value as any)}
+                                onChange={(e) => setNoteCategory(e.target.value as "Notes" | "Important Information" | "Ideas" | "References" | "Saved Items")}
                                 className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue"
                             >
                                 <option value="Notes">Notes</option>

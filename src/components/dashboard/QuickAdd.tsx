@@ -149,7 +149,7 @@ export const QuickAdd: React.FC<QuickAddProps> = ({ onOpenQuickCaptureModal }) =
                                 <AlertTriangle size={12} className="text-brand-gold" />
                                 <select
                                     value={priority}
-                                    onChange={(e) => setPriority(e.target.value as any)}
+                                    onChange={(e) => setPriority(e.target.value as "high" | "normal" | "low")}
                                     className="bg-transparent text-brand-muted hover:text-brand-text cursor-pointer focus:outline-none border-none outline-none font-medium py-0.5 text-xs"
                                 >
                                     <option value="normal" className="bg-brand-surface text-brand-text">Normal Priority</option>
@@ -165,7 +165,7 @@ export const QuickAdd: React.FC<QuickAddProps> = ({ onOpenQuickCaptureModal }) =
                                 <Clock size={12} className="text-brand-muted" />
                                 <select
                                     value={time || ""}
-                                    onChange={(e) => setTime(e.target.value ? e.target.value as any : undefined)}
+                                    onChange={(e) => setTime(e.target.value ? (e.target.value as "Morning" | "Afternoon" | "Evening") : undefined)}
                                     className="bg-transparent text-brand-muted hover:text-brand-text cursor-pointer focus:outline-none border-none outline-none font-medium py-0.5 text-xs"
                                 >
                                     <option value="Morning" className="bg-brand-surface text-brand-text">Morning Focus</option>

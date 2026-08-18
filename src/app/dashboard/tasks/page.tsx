@@ -164,7 +164,7 @@ export default function TasksPage() {
                 <div>
                     <select
                         value={priorityFilter}
-                        onChange={(e) => setPriorityFilter(e.target.value as any)}
+                        onChange={(e) => setPriorityFilter(e.target.value as Task["priority"] | "all")}
                         className="w-full bg-brand-surface text-brand-text border border-brand-border rounded-lg px-3 py-2.5 text-xs focus:border-brand-blue outline-none cursor-pointer"
                     >
                         <option value="all">All Priorities</option>
@@ -187,7 +187,7 @@ export default function TasksPage() {
                     return (
                         <button
                             key={tab.id}
-                            onClick={() => setStatusFilter(tab.id as any)}
+                            onClick={() => setStatusFilter(tab.id as "all" | "active" | "completed" | "priority")}
                             className={cn(
                                 "py-2 px-4 text-xs font-semibold uppercase tracking-wider transition-all border-b-2 whitespace-nowrap cursor-pointer",
                                 isActive
@@ -264,7 +264,7 @@ export default function TasksPage() {
                             </label>
                             <select
                                 value={taskPriority}
-                                onChange={(e) => setTaskPriority(e.target.value as any)}
+                                onChange={(e) => setTaskPriority(e.target.value as Task["priority"])}
                                 className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue"
                             >
                                 <option value="normal">Normal Priority</option>
@@ -293,7 +293,7 @@ export default function TasksPage() {
                             </label>
                             <select
                                 value={taskTime}
-                                onChange={(e) => setTaskTime(e.target.value as any)}
+                                onChange={(e) => setTaskTime(e.target.value as Task["time"] | "")}
                                 className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue"
                             >
                                 <option value="Morning">Morning Focus</option>

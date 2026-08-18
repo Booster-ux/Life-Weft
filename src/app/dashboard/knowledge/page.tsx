@@ -154,7 +154,7 @@ export default function KnowledgePage() {
                     return (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveCategory(tab.id as any)}
+                            onClick={() => setActiveCategory(tab.id as KnowledgeItem["category"] | "all")}
                             className={cn(
                                 "py-1.5 px-3 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap border cursor-pointer",
                                 isActive
@@ -294,7 +294,7 @@ export default function KnowledgePage() {
                             <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">Category</label>
                             <select
                                 value={newCategory}
-                                onChange={(e) => setNewCategory(e.target.value as any)}
+                                onChange={(e) => setNewCategory(e.target.value as KnowledgeItem["category"])}
                                 className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue"
                             >
                                 <option value="Notes">Notes (Quick write ups)</option>

@@ -286,7 +286,7 @@ export default function PlannerPage() {
                             </label>
                             <select
                                 value={sessionType}
-                                onChange={(e) => setSessionType(e.target.value as any)}
+                                onChange={(e) => setSessionType(e.target.value as PlannerSession["type"])}
                                 className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue"
                             >
                                 <option value="work">Work Focus (Blue)</option>

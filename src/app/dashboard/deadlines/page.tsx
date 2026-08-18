@@ -104,7 +104,7 @@ export default function DeadlinesPage() {
                         return (
                             <button
                                 key={tab.id}
-                                onClick={() => setFilterTimeframe(tab.id as any)}
+                                onClick={() => setFilterTimeframe(tab.id as "all" | "today" | "tomorrow" | "week" | "upcoming" | "overdue" | "completed")}
                                 className={`py-1.5 px-3 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap border cursor-pointer ${
                                     isActive
                                         ? "bg-brand-blue text-white border-brand-blue"
@@ -274,7 +274,7 @@ export default function DeadlinesPage() {
                             </label>
                             <select
                                 value={priority}
-                                onChange={(e) => setPriority(e.target.value as any)}
+                                onChange={(e) => setPriority(e.target.value as "high" | "normal" | "low")}
                                 className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue"
                             >
                                 <option value="normal">Normal Priority</option>

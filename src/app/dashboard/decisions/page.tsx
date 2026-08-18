@@ -453,7 +453,7 @@ export default function DecisionsPage() {
                             <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">Decision Status</label>
                             <select
                                 value={decisionStatus}
-                                onChange={(e) => setDecisionStatus(e.target.value as any)}
+                                onChange={(e) => setDecisionStatus(e.target.value as Decision["status"])}
                                 className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue"
                             >
                                 <option value="Under Consideration">Under Consideration</option>
