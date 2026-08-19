@@ -16,8 +16,13 @@ import {
     Layers,
     ArrowRight,
     Plus,
+    Target,
+    GitBranch,
+    Circle,
+    TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
 export default function DashboardOverview() {
@@ -27,6 +32,8 @@ export default function DashboardOverview() {
         deadlines,
         ledgerEntries,
         planner,
+        goals,
+        toggleGoalStatus,
         lifeAreas,
         activeLifeArea,
         setActiveLifeArea,
@@ -44,6 +51,15 @@ export default function DashboardOverview() {
     );
     const completedToday = todayTasks.filter((t) => t.completed).length;
     const totalToday = todayTasks.length;
+
+    // Filter goals
+    const areaFilteredGoals = activeLifeArea === "all"
+        ? goals
+        : goals.filter((g) => g.lifeAreaId === activeLifeArea);
+
+    const todayGoals = areaFilteredGoals.filter(
+        (g) => g.goalType === "daily" || (g.goalType === "weekly" && g.status === "active")
+    );
 
     // Top priority tasks
     const priorityToday = areaFilteredTasks
@@ -98,16 +114,16 @@ export default function DashboardOverview() {
                         })}
                     </p>
                     <p className="text-[10px] text-brand-gold uppercase font-bold tracking-widest mt-1">
-                        Lifeweft Active
+                        Personal Workspace Layer
                     </p>
                 </div>
             </div>
 
-            {/* Life Areas Filter Bar */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none border-b border-brand-border/40">
-                <span className="text-[10px] font-bold text-brand-muted uppercase tracking-wider mr-1 flex items-center gap-1">
-                    <Layers size={11} />
-                    Life Area:
+            {/* Life Areas Horizontal Filter Bar */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                <span className="text-xs font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1 pr-2 border-r border-brand-border/60">
+                    <Layers size={13} className="text-brand-blue" />
+                    Areas
                 </span>
 
                 <button
@@ -115,11 +131,11 @@ export default function DashboardOverview() {
                     className={cn(
                         "py-1.5 px-3 rounded-md text-xs font-semibold transition-all whitespace-nowrap border cursor-pointer",
                         activeLifeArea === "all"
-                            ? "bg-brand-blue text-white border-brand-blue shadow-sm"
+                            ? "bg-brand-surface text-white border-brand-blue shadow-sm font-bold"
                             : "bg-brand-surface text-brand-muted hover:text-brand-text border-brand-border"
                     )}
                 >
-                    All Areas
+                    All Life Areas
                 </button>
 
                 {lifeAreas.map((area) => {
@@ -150,6 +166,89 @@ export default function DashboardOverview() {
                 <div className="lg:col-span-2">
                     <QuickAdd onOpenQuickCaptureModal={handleOpenCapture} />
                 </div>
+            </div>
+
+            {/* Today's Strategic Goals & Actions Widget */}
+            <div className="bg-brand-surface border border-brand-border rounded-2xl p-5 space-y-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 rounded-lg bg-brand-gold/10 border border-brand-gold/30 flex items-center justify-center">
+                            <Target size={15} className="text-brand-gold" />
+                        </div>
+                        <div>
+                            <h3 className="text-xs font-bold text-white uppercase tracking-wider leading-none">
+                                Today's Goals & Strategic Actions
+                            </h3>
+                            <p className="text-[10px] text-brand-muted mt-0.5">
+                                Milestone actions driving your yearly objectives forward.
+                            </p>
+                        </div>
+                    </div>
+
+                    <Link
+                        href="/dashboard/goals"
+                        className="text-[11px] text-brand-gold font-bold tracking-wide uppercase hover:underline flex items-center gap-1"
+                    >
+                        Goals Roadmap ({goals.length}) <ArrowRight size={11} />
+                    </Link>
+                </div>
+
+                {todayGoals.length === 0 ? (
+                    <div className="p-4 rounded-xl bg-brand-bg/50 border border-brand-border/40 text-center text-xs text-brand-muted flex items-center justify-between gap-4">
+                        <span>No active daily milestones scheduled today. Break down a yearly vision to generate today's actions!</span>
+                        <Link href="/dashboard/goals">
+                            <Button type="button" variant="primary" className="text-[11px] py-1 px-3">
+                                <Sparkles size={11} className="mr-1" /> View Roadmap
+                            </Button>
+                        </Link>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {todayGoals.slice(0, 4).map((goal) => {
+                            const parent = goals.find((g) => g.id === goal.parentGoalId);
+                            const isCompleted = goal.status === "completed";
+
+                            return (
+                                <div
+                                    key={goal.id}
+                                    className={cn(
+                                        "p-3.5 bg-brand-bg border border-brand-border/80 hover:border-brand-border rounded-xl transition-all flex items-start justify-between gap-3 group",
+                                        isCompleted && "opacity-60"
+                                    )}
+                                >
+                                    <div className="flex items-start gap-2.5 min-w-0">
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleGoalStatus(goal.id)}
+                                            className="mt-0.5 text-brand-muted hover:text-brand-gold transition-colors flex-shrink-0"
+                                        >
+                                            {isCompleted ? (
+                                                <CheckCircle2 size={16} className="text-emerald-400" />
+                                            ) : (
+                                                <Circle size={16} className="text-brand-muted group-hover:text-brand-blue" />
+                                            )}
+                                        </button>
+                                        <div className="min-w-0">
+                                            {parent && (
+                                                <p className="text-[10px] text-brand-gold flex items-center gap-1 font-mono leading-none mb-1">
+                                                    <GitBranch size={10} />
+                                                    <span className="truncate max-w-[180px]">{parent.title}</span>
+                                                </p>
+                                            )}
+                                            <h4 className={cn("text-xs font-semibold text-white leading-snug truncate", isCompleted && "line-through text-brand-muted")}>
+                                                {goal.title}
+                                            </h4>
+                                        </div>
+                                    </div>
+
+                                    <span className="text-[10px] font-mono font-bold text-brand-muted flex-shrink-0">
+                                        {goal.progress}%
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
             {/* Main Content Multi-Column Layout */}
@@ -298,21 +397,22 @@ export default function DashboardOverview() {
                     </div>
 
                     {/* Ask Lifeweft Intelligence Card */}
-                    <div className="bg-gradient-to-br from-brand-surface to-brand-surface/80 border border-brand-gold/30 rounded-xl p-4.5 space-y-2.5 relative overflow-hidden shadow-lg shadow-black/20">
+                    <div className="bg-gradient-to-br from-brand-surface to-brand-blue/10 border border-brand-blue/30 rounded-xl p-5 space-y-3">
                         <div className="flex items-center gap-2">
-                            <div className="h-6 w-6 rounded bg-brand-gold/10 border border-brand-gold/40 flex items-center justify-center">
-                                <Sparkles size={13} className="text-brand-gold" />
-                            </div>
-                            <h4 className="text-xs font-bold text-brand-gold leading-none">Ask Lifeweft</h4>
+                            <Sparkles size={16} className="text-brand-gold animate-pulse" />
+                            <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                                Ask Lifeweft Assistant
+                            </h4>
                         </div>
                         <p className="text-[11px] text-brand-muted leading-relaxed">
-                            Need a summary of decisions, milestones, or today's priorities? Ask your personal memory layer.
+                            Query your entire personal memory layer, deadlines, priorities, strategic goals, and journal insights instantly.
                         </p>
                         <Link
                             href="/dashboard/ask"
-                            className="inline-flex items-center gap-1.5 text-xs text-brand-gold font-bold uppercase tracking-wider hover:underline"
+                            className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-blue hover:text-white uppercase tracking-wider transition-colors pt-1"
                         >
-                            Open Conversation <ArrowRight size={12} />
+                            <span>Open Query Engine</span>
+                            <ArrowRight size={13} />
                         </Link>
                     </div>
                 </div>

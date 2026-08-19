@@ -9,6 +9,7 @@ import {
     X,
     LayoutDashboard,
     CheckSquare,
+    Target,
     Calendar,
     Timer,
     GitFork,
@@ -35,13 +36,20 @@ export const MobileNav: React.FC<MobileNavProps> = ({
     const [isOpen, setIsOpen] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
-    const { userName, tasks, deadlines } = useApp();
+    const { userName, tasks, deadlines, goals } = useApp();
 
     const activeTasksCount = tasks.filter((t) => !t.completed).length;
     const activeDeadlinesCount = deadlines.filter((d) => !d.completed && d.daysLeft >= 0).length;
+    const activeGoalsCount = goals.filter((g) => g.status === "active").length;
 
     const drawerMenuItems = [
         { name: "Today", href: "/dashboard", icon: LayoutDashboard },
+        {
+            name: "Goals",
+            href: "/dashboard/goals",
+            icon: Target,
+            badge: activeGoalsCount > 0 ? activeGoalsCount : undefined,
+        },
         {
             name: "Tasks",
             href: "/dashboard/tasks",
@@ -64,6 +72,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
 
     const getPageTitle = () => {
         if (pathname === "/dashboard") return "Today";
+        if (pathname.includes("/goals")) return "Goals & Milestones";
         if (pathname.includes("/tasks")) return "Tasks";
         if (pathname.includes("/planner")) return "Planner";
         if (pathname.includes("/deadlines")) return "Deadlines";

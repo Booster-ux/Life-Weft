@@ -115,6 +115,7 @@ export interface Database {
                     content: string | null;
                     entry_date: string;
                     category: string | null;
+                    related_goal_id: string | null;
                     metadata: Json;
                     created_at: string;
                     updated_at: string;
@@ -128,6 +129,7 @@ export interface Database {
                     content?: string | null;
                     entry_date?: string;
                     category?: string | null;
+                    related_goal_id?: string | null;
                     metadata?: Json;
                     created_at?: string;
                     updated_at?: string;
@@ -141,7 +143,65 @@ export interface Database {
                     content?: string | null;
                     entry_date?: string;
                     category?: string | null;
+                    related_goal_id?: string | null;
                     metadata?: Json;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Relationships: [];
+            };
+            goals: {
+                Row: {
+                    id: string;
+                    user_id: string;
+                    parent_goal_id: string | null;
+                    title: string;
+                    description: string | null;
+                    goal_type: string;
+                    period: string | null;
+                    status: string;
+                    start_date: string | null;
+                    target_date: string | null;
+                    progress: number;
+                    life_area_id: string | null;
+                    measurable_target: string | null;
+                    notes: string | null;
+                    created_at: string;
+                    updated_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    user_id: string;
+                    parent_goal_id?: string | null;
+                    title: string;
+                    description?: string | null;
+                    goal_type?: string;
+                    period?: string | null;
+                    status?: string;
+                    start_date?: string | null;
+                    target_date?: string | null;
+                    progress?: number;
+                    life_area_id?: string | null;
+                    measurable_target?: string | null;
+                    notes?: string | null;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    user_id?: string;
+                    parent_goal_id?: string | null;
+                    title?: string;
+                    description?: string | null;
+                    goal_type?: string;
+                    period?: string | null;
+                    status?: string;
+                    start_date?: string | null;
+                    target_date?: string | null;
+                    progress?: number;
+                    life_area_id?: string | null;
+                    measurable_target?: string | null;
+                    notes?: string | null;
                     created_at?: string;
                     updated_at?: string;
                 };
@@ -158,6 +218,7 @@ export interface Database {
                     due_date: string | null;
                     completed_at: string | null;
                     life_area_id: string | null;
+                    goal_id: string | null;
                     time_window: string | null;
                     created_at: string;
                     updated_at: string;
@@ -172,6 +233,7 @@ export interface Database {
                     due_date?: string | null;
                     completed_at?: string | null;
                     life_area_id?: string | null;
+                    goal_id?: string | null;
                     time_window?: string | null;
                     created_at?: string;
                     updated_at?: string;
@@ -186,6 +248,7 @@ export interface Database {
                     due_date?: string | null;
                     completed_at?: string | null;
                     life_area_id?: string | null;
+                    goal_id?: string | null;
                     time_window?: string | null;
                     created_at?: string;
                     updated_at?: string;
@@ -202,6 +265,7 @@ export interface Database {
                     priority: string;
                     status: string;
                     life_area_id: string | null;
+                    goal_id: string | null;
                     related_task_id: string | null;
                     created_at: string;
                     updated_at: string;
@@ -215,6 +279,7 @@ export interface Database {
                     priority?: string;
                     status?: string;
                     life_area_id?: string | null;
+                    goal_id?: string | null;
                     related_task_id?: string | null;
                     created_at?: string;
                     updated_at?: string;
@@ -228,6 +293,7 @@ export interface Database {
                     priority?: string;
                     status?: string;
                     life_area_id?: string | null;
+                    goal_id?: string | null;
                     related_task_id?: string | null;
                     created_at?: string;
                     updated_at?: string;
@@ -246,6 +312,7 @@ export interface Database {
                     time_window: string | null;
                     item_type: string;
                     task_id: string | null;
+                    goal_id: string | null;
                     life_area_id: string | null;
                     created_at: string;
                     updated_at: string;
@@ -261,6 +328,7 @@ export interface Database {
                     time_window?: string | null;
                     item_type?: string;
                     task_id?: string | null;
+                    goal_id?: string | null;
                     life_area_id?: string | null;
                     created_at?: string;
                     updated_at?: string;
@@ -276,6 +344,7 @@ export interface Database {
                     time_window?: string | null;
                     item_type?: string;
                     task_id?: string | null;
+                    goal_id?: string | null;
                     life_area_id?: string | null;
                     created_at?: string;
                     updated_at?: string;

@@ -7,6 +7,7 @@ import { useApp } from "@/context/AppContext";
 import {
     LayoutDashboard,
     CheckSquare,
+    Target,
     Calendar,
     Timer,
     GitFork,
@@ -34,13 +35,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
     const pathname = usePathname();
     const router = useRouter();
-    const { userName, tasks, deadlines, ledgerEntries, signOut } = useApp();
+    const { userName, tasks, deadlines, ledgerEntries, goals, signOut } = useApp();
 
     const activeTasksCount = tasks.filter((t) => !t.completed).length;
     const activeDeadlinesCount = deadlines.filter((d) => !d.completed && d.daysLeft >= 0).length;
+    const activeGoalsCount = goals.filter((g) => g.status === "active").length;
 
     const menuItems = [
         { name: "Today", href: "/dashboard", icon: LayoutDashboard },
+        {
+            name: "Goals",
+            href: "/dashboard/goals",
+            icon: Target,
+            badge: activeGoalsCount > 0 ? activeGoalsCount : undefined,
+        },
         {
             name: "Tasks",
             href: "/dashboard/tasks",

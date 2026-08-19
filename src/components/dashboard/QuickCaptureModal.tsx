@@ -10,6 +10,7 @@ import {
     Library,
     Timer,
     GitFork,
+    Target,
     Sparkles,
     Tag,
 } from "lucide-react";
@@ -18,7 +19,7 @@ import { cn } from "@/lib/utils";
 interface QuickCaptureModalProps {
     isOpen: boolean;
     onClose: () => void;
-    initialType?: "task" | "ledger" | "note" | "deadline" | "decision";
+    initialType?: "task" | "goal" | "ledger" | "note" | "deadline" | "decision";
 }
 
 export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
@@ -28,6 +29,7 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
 }) => {
     const {
         addTask,
+        addGoal,
         addLedgerEntry,
         addKnowledgeItem,
         addDeadline,
@@ -36,7 +38,7 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
         ledgers,
     } = useApp();
 
-    const [captureType, setCaptureType] = useState<"task" | "ledger" | "note" | "deadline" | "decision">(initialType);
+    const [captureType, setCaptureType] = useState<"task" | "goal" | "ledger" | "note" | "deadline" | "decision">(initialType);
 
     // Sync initialType whenever modal opens
     React.useEffect(() => {
@@ -49,6 +51,9 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [selectedLifeArea, setSelectedLifeArea] = useState<string>("area-personal");
+
+    // Goal specific
+    const [goalType, setGoalType] = useState<"yearly" | "quarterly" | "monthly" | "weekly" | "daily">("daily");
 
     // Task specific
     const [taskPriority, setTaskPriority] = useState<"high" | "normal" | "low">("normal");
@@ -87,6 +92,17 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
         const todayStr = new Date().toISOString().split("T")[0];
 
         switch (captureType) {
+            case "goal":
+                addGoal({
+                    title: cleanTitle,
+                    description: description.trim() || undefined,
+                    goalType,
+                    lifeAreaId: selectedLifeArea,
+                    status: "active",
+                    progress: 0,
+                });
+                break;
+
             case "task":
                 addTask({
                     title: cleanTitle,
@@ -170,11 +186,12 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
             title="Quick Capture"
             className="max-w-xl"
         >
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 font-sans">
                 {/* Type Switcher Tabs */}
-                <div className="grid grid-cols-5 gap-1 p-1 bg-brand-bg rounded-lg border border-brand-border text-xs">
+                <div className="grid grid-cols-6 gap-1 p-1 bg-brand-bg rounded-lg border border-brand-border text-xs">
                     {[
                         { id: "task", label: "Task", icon: CheckSquare },
+                        { id: "goal", label: "Goal", icon: Target },
                         { id: "ledger", label: "Ledger", icon: BookOpen },
                         { id: "note", label: "Note", icon: Library },
                         { id: "deadline", label: "Deadline", icon: Timer },
@@ -186,56 +203,59 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
                             <button
                                 key={tab.id}
                                 type="button"
-                                onClick={() => setCaptureType(tab.id as "task" | "ledger" | "note" | "deadline" | "decision")}
+                                onClick={() => setCaptureType(tab.id as any)}
                                 className={cn(
-                                    "flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2 px-1 rounded-md font-semibold transition-all cursor-pointer",
+                                    "flex flex-col items-center justify-center py-2 px-1 rounded-md transition-all font-semibold gap-1",
                                     isActive
-                                        ? "bg-brand-blue text-white shadow-sm"
-                                        : "text-brand-muted hover:text-brand-text hover:bg-brand-surface/40"
+                                        ? "bg-brand-surface text-white border border-brand-blue/50 shadow-sm"
+                                        : "text-brand-muted hover:text-brand-text hover:bg-brand-border/20"
                                 )}
                             >
-                                <Icon size={14} />
-                                <span className="text-[11px]">{tab.label}</span>
+                                <Icon size={14} className={isActive ? "text-brand-blue" : "text-brand-muted"} />
+                                <span className="text-[10px] tracking-tight">{tab.label}</span>
                             </button>
                         );
                     })}
                 </div>
 
-                {/* Primary Title / Content Field */}
+                {/* Main Input: Title */}
                 <div className="space-y-1">
                     <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">
                         {captureType === "task" && "What needs to be done?"}
-                        {captureType === "ledger" && "What happened / what are you remembering?"}
-                        {captureType === "note" && "Title of note / information"}
-                        {captureType === "deadline" && "Deadline Title & Target"}
-                        {captureType === "decision" && "What decision are you facing?"}
+                        {captureType === "goal" && "What is the milestone or goal?"}
+                        {captureType === "ledger" && "What happened in your life?"}
+                        {captureType === "note" && "Note / Information Title"}
+                        {captureType === "deadline" && "Deadline Milestone Title"}
+                        {captureType === "decision" && "What decision are you considering?"}
                     </label>
                     <input
                         type="text"
                         placeholder={
                             captureType === "task"
-                                ? "e.g. Call client about contract finalization"
+                                ? "e.g. Schedule meeting with finance team"
+                                : captureType === "goal"
+                                ? "e.g. Complete MVP launch & acquire 100 beta users"
                                 : captureType === "ledger"
-                                    ? "e.g. Met Sarah for lunch, agreed to partner on design system"
-                                    : captureType === "note"
-                                        ? "e.g. Supabase connection strings & policy patterns"
-                                        : captureType === "deadline"
-                                            ? "e.g. Final Project Submission"
-                                            : "e.g. Choose between Next.js hosting providers"
+                                ? "e.g. Closed our first enterprise agreement"
+                                : captureType === "note"
+                                ? "e.g. Key takeaways from system architecture doc"
+                                : captureType === "deadline"
+                                ? "e.g. Finalize Q3 revenue report submission"
+                                : "e.g. Choose between AWS vs Supabase for backend"
                         }
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3.5 py-2.5 text-sm focus:border-brand-blue outline-none"
-                        required
                         autoFocus
+                        required
+                        className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3.5 py-2.5 text-sm focus:border-brand-blue outline-none placeholder:text-brand-muted/40"
                     />
                 </div>
 
-                {/* Description / Additional details if relevant */}
-                {(captureType === "ledger" || captureType === "note" || captureType === "decision") && (
+                {/* Optional Details / Content */}
+                {captureType !== "task" && (
                     <div className="space-y-1">
                         <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">
-                            {captureType === "decision" ? "Situation / Background Context" : "Details / Notes"}
+                            {captureType === "decision" ? "Context & Background" : "Details & Description"}
                         </label>
                         <textarea
                             rows={3}
@@ -294,6 +314,23 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
                     </div>
 
                     {/* Specific Subtype selector */}
+                    {captureType === "goal" && (
+                        <div className="space-y-1">
+                            <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">Goal Level</label>
+                            <select
+                                value={goalType}
+                                onChange={(e) => setGoalType(e.target.value as any)}
+                                className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue"
+                            >
+                                <option value="daily">Daily Action</option>
+                                <option value="weekly">Weekly Focus</option>
+                                <option value="monthly">Monthly Goal</option>
+                                <option value="quarterly">Quarterly Milestone</option>
+                                <option value="yearly">Yearly Vision</option>
+                            </select>
+                        </div>
+                    )}
+
                     {captureType === "task" && (
                         <div className="space-y-1">
                             <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">Priority</label>
@@ -344,40 +381,26 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
                             <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">Category</label>
                             <select
                                 value={noteCategory}
-                                onChange={(e) => setNoteCategory(e.target.value as "Notes" | "Important Information" | "Ideas" | "References" | "Saved Items")}
+                                onChange={(e) => setNoteCategory(e.target.value as any)}
                                 className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue"
                             >
-                                <option value="Notes">Notes</option>
+                                <option value="Notes">General Notes</option>
                                 <option value="Important Information">Important Info</option>
-                                <option value="Ideas">Ideas</option>
-                                <option value="References">References</option>
+                                <option value="Ideas">Ideas & Inventions</option>
+                                <option value="References">References & Links</option>
                                 <option value="Saved Items">Saved Items</option>
                             </select>
                         </div>
                     )}
                 </div>
 
-                {/* Ledger tags optional input */}
-                {captureType === "ledger" && (
-                    <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">Tags (Comma-separated)</label>
-                        <input
-                            type="text"
-                            placeholder="e.g. Client, Meeting, Project, Milestone"
-                            value={ledgerTags}
-                            onChange={(e) => setLedgerTags(e.target.value)}
-                            className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue outline-none"
-                        />
-                    </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex justify-end gap-3 pt-3 border-t border-brand-border/40">
-                    <Button type="button" variant="ghost" size="sm" onClick={onClose}>
+                {/* Footer Actions */}
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-brand-border/40">
+                    <Button type="button" variant="secondary" onClick={onClose} className="text-xs">
                         Cancel
                     </Button>
-                    <Button type="submit" variant="primary" size="sm" className="font-semibold px-5">
-                        Save to Lifeweft
+                    <Button type="submit" variant="primary" className="text-xs font-bold uppercase tracking-wider">
+                        Capture {captureType.toUpperCase()}
                     </Button>
                 </div>
             </form>

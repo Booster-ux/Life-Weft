@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import {
     Search,
+    Target,
     CheckSquare,
     Timer,
     BookOpen,
@@ -24,7 +25,15 @@ interface GlobalSearchModalProps {
 
 export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, onClose }) => {
     const router = useRouter();
-    const { tasks, deadlines, ledgerEntries, decisions, knowledge, planner, lifeAreas } = useApp();
+    const { 
+        tasks, 
+        deadlines, 
+        ledgerEntries, 
+        decisions, 
+        knowledge, 
+        planner, 
+        goals 
+    } = useApp();
     const [query, setQuery] = useState("");
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -52,6 +61,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
     const lowerQuery = query.toLowerCase().trim();
 
     // Search across all data stores
+    const matchedGoals = lowerQuery ? goals.filter(g => g.title.toLowerCase().includes(lowerQuery) || (g.description && g.description.toLowerCase().includes(lowerQuery)) || g.goalType.toLowerCase().includes(lowerQuery)) : [];
     const matchedTasks = lowerQuery ? tasks.filter(t => t.title.toLowerCase().includes(lowerQuery) || t.category.toLowerCase().includes(lowerQuery)) : [];
     const matchedDeadlines = lowerQuery ? deadlines.filter(d => d.title.toLowerCase().includes(lowerQuery)) : [];
     const matchedLedger = lowerQuery ? ledgerEntries.filter(e => e.title.toLowerCase().includes(lowerQuery) || e.description.toLowerCase().includes(lowerQuery) || e.tags.some(t => t.toLowerCase().includes(lowerQuery))) : [];
@@ -60,6 +70,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
     const matchedPlanner = lowerQuery ? planner.filter(p => p.title.toLowerCase().includes(lowerQuery)) : [];
 
     const totalResults =
+        matchedGoals.length +
         matchedTasks.length +
         matchedDeadlines.length +
         matchedLedger.length +
@@ -132,6 +143,33 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                         </div>
                     ) : (
                         <div className="space-y-4 text-xs">
+                            {/* Goals Results */}
+                            {matchedGoals.length > 0 && (
+                                <div className="space-y-1.5">
+                                    <span className="text-[10px] font-bold text-brand-gold uppercase tracking-wider flex items-center gap-1.5">
+                                        <Target size={12} />
+                                        Goals & Milestones ({matchedGoals.length})
+                                    </span>
+                                    {matchedGoals.map((goal) => (
+                                        <div
+                                            key={goal.id}
+                                            onClick={() => handleNavigate("/dashboard/goals")}
+                                            className="flex items-center justify-between p-2.5 bg-brand-bg hover:bg-brand-border/40 rounded-lg border border-brand-border transition-all cursor-pointer group"
+                                        >
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <span className="h-2 w-2 rounded-full bg-brand-gold" />
+                                                <span className="text-brand-text font-medium truncate">
+                                                    {goal.title}
+                                                </span>
+                                            </div>
+                                            <span className="text-[10px] text-brand-muted uppercase font-semibold group-hover:text-brand-gold font-mono">
+                                                {goal.goalType} • {goal.progress}%
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
                             {/* Tasks Results */}
                             {matchedTasks.length > 0 && (
                                 <div className="space-y-1.5">

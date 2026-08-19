@@ -39,6 +39,24 @@ export interface LedgerEntry {
     relatedTaskId?: string;
     relatedDeadlineId?: string;
     relatedDecisionId?: string;
+    relatedGoalId?: string;
+    createdAt: string;
+}
+
+export interface Goal {
+    id: string;
+    parentGoalId?: string;
+    title: string;
+    description?: string;
+    goalType: "yearly" | "quarterly" | "monthly" | "weekly" | "daily" | "custom";
+    period?: string;
+    status: "active" | "completed" | "paused" | "archived";
+    startDate?: string;
+    targetDate?: string;
+    progress: number;
+    lifeAreaId?: string;
+    measurableTarget?: string;
+    notes?: string;
     createdAt: string;
 }
 
@@ -52,6 +70,7 @@ export interface Task {
     dueDate?: string; // "YYYY-MM-DD"
     deadlineId?: string;
     lifeAreaId?: string;
+    goalId?: string;
     tags?: string[];
 }
 
@@ -64,6 +83,7 @@ export interface Deadline {
     relatedTaskId?: string;
     completed: boolean;
     lifeAreaId?: string;
+    goalId?: string;
     time?: string;
     notes?: string;
 }
@@ -108,6 +128,7 @@ export interface PlannerSession {
     time: string; // e.g. "09:00 - 11:00"
     type: "work" | "study" | "personal" | "health";
     lifeAreaId?: string;
+    goalId?: string;
 }
 
 export interface AskLifeweftAnswer {
@@ -115,7 +136,7 @@ export interface AskLifeweftAnswer {
     question: string;
     summary: string;
     relatedItems: {
-        type: "task" | "deadline" | "ledger" | "decision" | "knowledge" | "planner";
+        type: "task" | "deadline" | "ledger" | "decision" | "knowledge" | "planner" | "goal";
         id: string;
         title: string;
         detail?: string;
@@ -146,6 +167,14 @@ interface AppContextType {
     addLedgerEntry: (entry: Omit<LedgerEntry, "id" | "createdAt">) => Promise<void>;
     updateLedgerEntry: (entry: LedgerEntry) => Promise<void>;
     deleteLedgerEntry: (id: string) => Promise<void>;
+
+    // Goals System
+    goals: Goal[];
+    addGoal: (goal: Omit<Goal, "id" | "createdAt">) => Promise<string>;
+    updateGoal: (goal: Goal) => Promise<void>;
+    deleteGoal: (id: string) => Promise<void>;
+    toggleGoalStatus: (id: string) => Promise<void>;
+    batchAddGoals: (goalsList: Omit<Goal, "id" | "createdAt">[]) => Promise<void>;
 
     // Tasks
     tasks: Task[];
@@ -190,7 +219,7 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// Initial fallback data for unauthenticated or first-time view
+// Initial fallback data
 const initialLifeAreas: LifeArea[] = [
     { id: "area-personal", name: "Personal", color: "#3B82F6" },
     { id: "area-work", name: "Work", color: "#2563EB" },
@@ -205,10 +234,97 @@ const initialLedgers: Ledger[] = [
     { id: "ldg-school", name: "School", description: "Academic milestones, study breakthroughs and thesis", color: "#10B981", isDefault: false },
 ];
 
+const initialGoals: Goal[] = [
+    {
+        id: "goal-saas-2026",
+        title: "Scale Lifeweft to 1,000 Active Members",
+        description: "Transform personal life management into a premier daily workspace.",
+        goalType: "yearly",
+        period: "2026",
+        status: "active",
+        startDate: "2026-01-01",
+        targetDate: "2026-12-31",
+        progress: 42,
+        lifeAreaId: "area-business",
+        measurableTarget: "1,000 active users",
+        createdAt: "2026-01-01",
+    },
+    {
+        id: "goal-saas-q1",
+        parentGoalId: "goal-saas-2026",
+        title: "Q1: Production Database & Supabase Full-Stack Architecture",
+        description: "Establish reliable multi-tenant database schema, RLS, and security.",
+        goalType: "quarterly",
+        period: "Q1 2026",
+        status: "completed",
+        startDate: "2026-01-01",
+        targetDate: "2026-03-31",
+        progress: 100,
+        lifeAreaId: "area-business",
+        createdAt: "2026-01-01",
+    },
+    {
+        id: "goal-saas-q3",
+        parentGoalId: "goal-saas-2026",
+        title: "Q3: Launch Goal Breakdown Engine & Roadmap Navigation",
+        description: "Deliver top-tier decomposition workflows from yearly vision to daily momentum.",
+        goalType: "quarterly",
+        period: "Q3 2026",
+        status: "active",
+        startDate: "2026-07-01",
+        targetDate: "2026-09-30",
+        progress: 65,
+        lifeAreaId: "area-business",
+        createdAt: "2026-07-01",
+    },
+    {
+        id: "goal-saas-m8",
+        parentGoalId: "goal-saas-q3",
+        title: "August: Complete Goal Hierarchy UI & Task Integrations",
+        description: "Connect goals to tasks, deadlines, planner, and today command center.",
+        goalType: "monthly",
+        period: "August 2026",
+        status: "active",
+        startDate: "2026-08-01",
+        targetDate: "2026-08-31",
+        progress: 75,
+        lifeAreaId: "area-business",
+        createdAt: "2026-08-01",
+    },
+    {
+        id: "goal-saas-w33",
+        parentGoalId: "goal-saas-m8",
+        title: "Week 33: Goals Management Page & Breakdown Modal",
+        description: "Ship /dashboard/goals with filter tabs and hierarchy tree.",
+        goalType: "weekly",
+        period: "Week 33",
+        status: "active",
+        startDate: "2026-08-18",
+        targetDate: "2026-08-24",
+        progress: 80,
+        lifeAreaId: "area-business",
+        createdAt: "2026-08-18",
+    },
+    {
+        id: "goal-saas-d1",
+        parentGoalId: "goal-saas-w33",
+        title: "Complete Goal Breakdown Wizard & Build Verification",
+        description: "Ensure clean Next.js build and full database integration.",
+        goalType: "daily",
+        period: "Today",
+        status: "active",
+        startDate: "2026-08-19",
+        targetDate: "2026-08-19",
+        progress: 90,
+        lifeAreaId: "area-business",
+        createdAt: "2026-08-19",
+    },
+];
+
 function calculateDaysLeft(dueDateStr: string): number {
     try {
         const target = new Date(dueDateStr);
-        const today = new Date("2026-08-08"); // Current workspace base anchor
+        const today = new Date("2026-08-08");
         const diffTime = target.getTime() - today.getTime();
         return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     } catch {
@@ -234,6 +350,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Domain collections
     const [ledgers, setLedgers] = useState<Ledger[]>(initialLedgers);
     const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
+    const [goals, setGoals] = useState<Goal[]>(initialGoals);
     const [tasks, setTasks] = useState<Task[]>([]);
     const [deadlines, setDeadlines] = useState<Deadline[]>([]);
     const [decisions, setDecisions] = useState<Decision[]>([]);
@@ -311,13 +428,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                         time: e.entry_date && e.entry_date.includes("T") ? e.entry_date.split("T")[1].substring(0, 5) : undefined,
                         ledgerId: e.ledger_id,
                         lifeAreaId: e.life_area_id || undefined,
+                        relatedGoalId: e.related_goal_id || undefined,
                         tags: (e.metadata as any)?.tags || [],
                         createdAt: e.created_at,
                     }))
                 );
             }
 
-            // 5. Tasks
+            // 5. Goals
+            const { data: goalsData } = await supabase
+                .from("goals")
+                .select("*")
+                .eq("user_id", userId)
+                .order("created_at", { ascending: true });
+
+            if (goalsData && goalsData.length > 0) {
+                setGoals(
+                    goalsData.map((g) => ({
+                        id: g.id,
+                        parentGoalId: g.parent_goal_id || undefined,
+                        title: g.title,
+                        description: g.description || undefined,
+                        goalType: (g.goal_type as any) || "yearly",
+                        period: g.period || undefined,
+                        status: (g.status as any) || "active",
+                        startDate: g.start_date || undefined,
+                        targetDate: g.target_date || undefined,
+                        progress: g.progress ?? 0,
+                        lifeAreaId: g.life_area_id || undefined,
+                        measurableTarget: g.measurable_target || undefined,
+                        notes: g.notes || undefined,
+                        createdAt: g.created_at ? g.created_at.split("T")[0] : "2026-08-19",
+                    }))
+                );
+            }
+
+            // 6. Tasks
             const { data: tasksData } = await supabase
                 .from("tasks")
                 .select("*")
@@ -334,12 +480,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                         category: "Personal",
                         dueDate: t.due_date ? t.due_date.split("T")[0] : undefined,
                         lifeAreaId: t.life_area_id || undefined,
+                        goalId: t.goal_id || undefined,
                         time: t.time_window || undefined,
                     }))
                 );
             }
 
-            // 6. Deadlines
+            // 7. Deadlines
             const { data: deadlinesData } = await supabase
                 .from("deadlines")
                 .select("*")
@@ -358,6 +505,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                             priority: (d.priority as "high" | "normal" | "low") || "normal",
                             completed: d.status === "completed",
                             lifeAreaId: d.life_area_id || undefined,
+                            goalId: d.goal_id || undefined,
                             notes: d.description || undefined,
                             relatedTaskId: d.related_task_id || undefined,
                         };
@@ -365,7 +513,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 );
             }
 
-            // 7. Decisions
+            // 8. Decisions
             const { data: decisionsData } = await supabase
                 .from("decisions")
                 .select("*")
@@ -390,7 +538,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 );
             }
 
-            // 8. Knowledge Items
+            // 9. Knowledge Items
             const { data: knowledgeData } = await supabase
                 .from("knowledge_items")
                 .select("*")
@@ -413,7 +561,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 );
             }
 
-            // 9. Planner Items
+            // 10. Planner Items
             const { data: plannerData } = await supabase
                 .from("planner_items")
                 .select("*")
@@ -429,6 +577,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                         time: p.time_window || "09:00 - 11:00",
                         type: (p.item_type as any) || "work",
                         lifeAreaId: p.life_area_id || undefined,
+                        goalId: p.goal_id || undefined,
                     }))
                 );
             }
@@ -469,6 +618,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 setTasks([]);
                 setDeadlines([]);
                 setLedgerEntries([]);
+                setGoals(initialGoals);
                 setDecisions([]);
                 setKnowledge([]);
                 setPlanner([]);
@@ -603,6 +753,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     title: entry.title,
                     content: entry.description,
                     entry_date: entry.date ? `${entry.date}T${entry.time || "00:00"}:00Z` : new Date().toISOString(),
+                    related_goal_id: entry.relatedGoalId || null,
                     metadata: { tags: entry.tags, attachment: entry.attachment },
                 })
                 .select("id")
@@ -626,6 +777,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     title: entry.title,
                     content: entry.description,
                     entry_date: entry.date ? `${entry.date}T${entry.time || "00:00"}:00Z` : new Date().toISOString(),
+                    related_goal_id: entry.relatedGoalId || null,
                     metadata: { tags: entry.tags, attachment: entry.attachment },
                 })
                 .eq("id", entry.id)
@@ -638,6 +790,141 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         if (user) {
             await supabase.from("ledger_entries").delete().eq("id", id).eq("user_id", user.id);
+        }
+    };
+
+    // ==========================================
+    // Goals CRUD & Dynamic Rollup
+    // ==========================================
+    const recalculateGoalProgress = (goalId: string, currentGoals: Goal[], currentTasks: Task[]): number => {
+        const childGoals = currentGoals.filter((g) => g.parentGoalId === goalId);
+        const linkedTasks = currentTasks.filter((t) => t.goalId === goalId);
+
+        if (childGoals.length > 0) {
+            const sumProgress = childGoals.reduce((sum, g) => sum + (g.status === "completed" ? 100 : g.progress), 0);
+            return Math.round(sumProgress / childGoals.length);
+        }
+
+        if (linkedTasks.length > 0) {
+            const completedCount = linkedTasks.filter((t) => t.completed).length;
+            return Math.round((completedCount / linkedTasks.length) * 100);
+        }
+
+        const target = currentGoals.find((g) => g.id === goalId);
+        return target ? target.progress : 0;
+    };
+
+    const addGoal = async (goalData: Omit<Goal, "id" | "createdAt">): Promise<string> => {
+        const tempId = `goal-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+        const newGoal: Goal = {
+            ...goalData,
+            id: tempId,
+            progress: goalData.progress ?? 0,
+            createdAt: new Date().toISOString().split("T")[0],
+        };
+
+        setGoals((prev) => [newGoal, ...prev]);
+
+        if (user) {
+            const { data, error } = await supabase
+                .from("goals")
+                .insert({
+                    user_id: user.id,
+                    parent_goal_id: goalData.parentGoalId || null,
+                    title: goalData.title,
+                    description: goalData.description || null,
+                    goal_type: goalData.goalType,
+                    period: goalData.period || null,
+                    status: goalData.status,
+                    start_date: goalData.startDate || null,
+                    target_date: goalData.targetDate || null,
+                    progress: goalData.progress ?? 0,
+                    life_area_id: goalData.lifeAreaId || null,
+                    measurable_target: goalData.measurableTarget || null,
+                    notes: goalData.notes || null,
+                })
+                .select("id")
+                .single();
+
+            if (data && !error) {
+                setGoals((prev) => prev.map((g) => (g.id === tempId ? { ...g, id: data.id } : g)));
+                return data.id;
+            }
+        }
+
+        return tempId;
+    };
+
+    const updateGoal = async (goal: Goal) => {
+        setGoals((prev) => prev.map((g) => (g.id === goal.id ? goal : g)));
+
+        if (user) {
+            await supabase
+                .from("goals")
+                .update({
+                    parent_goal_id: goal.parentGoalId || null,
+                    title: goal.title,
+                    description: goal.description || null,
+                    goal_type: goal.goalType,
+                    period: goal.period || null,
+                    status: goal.status,
+                    start_date: goal.startDate || null,
+                    target_date: goal.targetDate || null,
+                    progress: goal.progress,
+                    life_area_id: goal.lifeAreaId || null,
+                    measurable_target: goal.measurableTarget || null,
+                    notes: goal.notes || null,
+                })
+                .eq("id", goal.id)
+                .eq("user_id", user.id);
+        }
+    };
+
+    const deleteGoal = async (id: string) => {
+        setGoals((prev) => prev.filter((g) => g.id !== id && g.parentGoalId !== id));
+
+        if (user) {
+            await supabase.from("goals").delete().eq("id", id).eq("user_id", user.id);
+        }
+    };
+
+    const toggleGoalStatus = async (id: string) => {
+        const target = goals.find((g) => g.id === id);
+        if (!target) return;
+
+        const newStatus = target.status === "completed" ? "active" : "completed";
+        const newProgress = newStatus === "completed" ? 100 : 0;
+
+        setGoals((prev) =>
+            prev.map((g) => (g.id === id ? { ...g, status: newStatus, progress: newProgress } : g))
+        );
+
+        if (user) {
+            await supabase
+                .from("goals")
+                .update({ status: newStatus, progress: newProgress })
+                .eq("id", id)
+                .eq("user_id", user.id);
+        }
+    };
+
+    const batchAddGoals = async (goalsList: Omit<Goal, "id" | "createdAt">[]) => {
+        // Map temporary IDs to generated items
+        const idMapping: { [tempId: string]: string } = {};
+
+        for (const item of goalsList) {
+            const resolvedParentId = item.parentGoalId && idMapping[item.parentGoalId]
+                ? idMapping[item.parentGoalId]
+                : item.parentGoalId;
+
+            const createdId = await addGoal({
+                ...item,
+                parentGoalId: resolvedParentId,
+            });
+
+            if (item.parentGoalId) {
+                idMapping[item.parentGoalId] = createdId;
+            }
         }
     };
 
@@ -659,6 +946,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     priority: task.priority,
                     due_date: task.dueDate ? `${task.dueDate}T00:00:00Z` : null,
                     life_area_id: task.lifeAreaId || null,
+                    goal_id: task.goalId || null,
                     time_window: task.time || null,
                 })
                 .select("id")
@@ -675,7 +963,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!taskToToggle) return;
 
         const newCompleted = !taskToToggle.completed;
-        setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: newCompleted } : t)));
+        const updatedTasks = tasks.map((t) => (t.id === id ? { ...t, completed: newCompleted } : t));
+        setTasks(updatedTasks);
 
         if (user) {
             await supabase
@@ -686,6 +975,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 })
                 .eq("id", id)
                 .eq("user_id", user.id);
+        }
+
+        // Check if task is linked to a goal and update goal progress
+        if (taskToToggle.goalId) {
+            const newProg = recalculateGoalProgress(taskToToggle.goalId, goals, updatedTasks);
+            const targetGoal = goals.find((g) => g.id === taskToToggle.goalId);
+            if (targetGoal) {
+                updateGoal({ ...targetGoal, progress: newProg });
+            }
         }
     };
 
@@ -709,6 +1007,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     priority: task.priority,
                     due_date: task.dueDate ? `${task.dueDate}T00:00:00Z` : null,
                     life_area_id: task.lifeAreaId || null,
+                    goal_id: task.goalId || null,
                     time_window: task.time || null,
                 })
                 .eq("id", task.id)
@@ -739,6 +1038,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     priority: deadline.priority,
                     status: "pending",
                     life_area_id: deadline.lifeAreaId || null,
+                    goal_id: deadline.goalId || null,
                     description: deadline.notes || null,
                     related_task_id: deadline.relatedTaskId || null,
                 })
@@ -787,6 +1087,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     priority: deadline.priority,
                     status: deadline.completed ? "completed" : "pending",
                     life_area_id: deadline.lifeAreaId || null,
+                    goal_id: deadline.goalId || null,
                     description: deadline.notes || null,
                     related_task_id: deadline.relatedTaskId || null,
                 })
@@ -939,6 +1240,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     time_window: sessionData.time,
                     item_type: sessionData.type,
                     life_area_id: sessionData.lifeAreaId || null,
+                    goal_id: sessionData.goalId || null,
                 })
                 .select("id")
                 .single();
@@ -961,6 +1263,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     time_window: sessionData.time,
                     item_type: sessionData.type,
                     life_area_id: sessionData.lifeAreaId || null,
+                    goal_id: sessionData.goalId || null,
                 })
                 .eq("id", sessionData.id)
                 .eq("user_id", user.id);
@@ -984,6 +1287,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         const relatedItems: AskLifeweftAnswer["relatedItems"] = [];
         const insights: string[] = [];
+
+        // Context search across goals
+        const matchedGoals = goals.filter(
+            (g) =>
+                q.includes("goal") ||
+                q.includes("yearly") ||
+                q.includes("milestone") ||
+                q.includes("achieve") ||
+                q.includes("target") ||
+                g.title.toLowerCase().includes(q)
+        );
+        matchedGoals.slice(0, 3).forEach((g) => {
+            relatedItems.push({
+                type: "goal",
+                id: g.id,
+                title: g.title,
+                detail: `Level: ${g.goalType.toUpperCase()} • Progress: ${g.progress}% • Target: ${g.targetDate || g.period || "Ongoing"}`,
+            });
+        });
 
         // Context search across tasks
         const activeTasks = tasks.filter((t) => !t.completed);
@@ -1041,12 +1363,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         // Generate response summary from retrieved workspace context
         let summary = "";
-        if (q.includes("today") || q.includes("priorit")) {
-            summary = `You currently have ${activeTasks.length} active tasks in your workspace. ${
-                pendingDeadlines.length > 0 ? `There are ${pendingDeadlines.length} upcoming deadlines on your radar.` : ""
-            }`;
+        if (q.includes("goal") || q.includes("yearly") || q.includes("milestone") || q.includes("track")) {
+            const activeGoals = goals.filter((g) => g.status === "active");
+            const yearlyCount = goals.filter((g) => g.goalType === "yearly").length;
+            const avgProgress = goals.length > 0
+                ? Math.round(goals.reduce((acc, g) => acc + g.progress, 0) / goals.length)
+                : 0;
+
+            summary = `You have ${activeGoals.length} active goals across ${yearlyCount} master yearly initiatives, with an overall execution rate of ${avgProgress}%.`;
+
+            const dailyActionGoals = goals.filter((g) => g.goalType === "daily" && g.status === "active");
+            if (dailyActionGoals.length > 0) {
+                insights.push(`You have ${dailyActionGoals.length} immediate daily action(s) contributing to your milestone roadmaps.`);
+            }
+        } else if (q.includes("today") || q.includes("priorit")) {
+            const todayGoals = goals.filter((g) => g.goalType === "daily" && g.status === "active");
+            summary = `You have ${activeTasks.length} tasks and ${todayGoals.length} daily milestone action(s) on your agenda today.`;
             if (activeTasks.filter((t) => t.priority === "high").length > 0) {
-                insights.push("You have high-priority items due. Focus on completing these first.");
+                insights.push("You have high-priority tasks requiring immediate focus.");
             }
         } else if (q.includes("deadline") || q.includes("week")) {
             summary = `Found ${pendingDeadlines.length} pending deadlines in your tracker.`;
@@ -1088,6 +1422,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 addLedgerEntry,
                 updateLedgerEntry,
                 deleteLedgerEntry,
+                goals,
+                addGoal,
+                updateGoal,
+                deleteGoal,
+                toggleGoalStatus,
+                batchAddGoals,
                 tasks,
                 addTask,
                 toggleTask,
