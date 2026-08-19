@@ -6,8 +6,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import {
     LayoutDashboard,
-    CheckSquare,
+    Sun,
     Target,
+    CheckSquare,
     Calendar,
     Timer,
     GitFork,
@@ -43,6 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
     const menuItems = [
         { name: "Today", href: "/dashboard", icon: LayoutDashboard },
+        { name: "My Day", href: "/dashboard/my-day", icon: Sun },
         {
             name: "Goals",
             href: "/dashboard/goals",

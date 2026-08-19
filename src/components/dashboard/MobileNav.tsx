@@ -8,6 +8,7 @@ import {
     Menu,
     X,
     LayoutDashboard,
+    Sun,
     CheckSquare,
     Target,
     Calendar,
@@ -44,6 +45,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
 
     const drawerMenuItems = [
         { name: "Today", href: "/dashboard", icon: LayoutDashboard },
+        { name: "My Day", href: "/dashboard/my-day", icon: Sun },
         {
             name: "Goals",
             href: "/dashboard/goals",
