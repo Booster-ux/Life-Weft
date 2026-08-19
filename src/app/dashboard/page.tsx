@@ -401,7 +401,7 @@ export default function DashboardOverview() {
                         <div className="flex items-center gap-2">
                             <Sparkles size={16} className="text-brand-gold animate-pulse" />
                             <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-                                Ask Lifeweft Assistant
+                                Intelligence & Memory Assistant
                             </h4>
                         </div>
                         <p className="text-[11px] text-brand-muted leading-relaxed">

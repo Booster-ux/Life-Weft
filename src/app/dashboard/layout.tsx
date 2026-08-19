@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileNav } from "@/components/dashboard/MobileNav";
 import { GlobalSearchModal } from "@/components/dashboard/GlobalSearchModal";
 import { QuickCaptureModal } from "@/components/dashboard/QuickCaptureModal";
+import { OnboardingModal } from "@/components/dashboard/OnboardingModal";
 
 export default function DashboardLayout({
     children,
@@ -86,6 +87,9 @@ export default function DashboardLayout({
                 onClose={() => setIsQuickCaptureOpen(false)}
                 initialType={quickCaptureType}
             />
+
+            {/* First-Time User Onboarding Tutorial */}
+            <OnboardingModal />
         </div>
     );
 }

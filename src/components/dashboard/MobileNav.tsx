@@ -37,7 +37,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
     const [isOpen, setIsOpen] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
-    const { userName, tasks, deadlines, goals } = useApp();
+    const { userName, avatarUrl, tasks, deadlines, goals } = useApp();
 
     const activeTasksCount = tasks.filter((t) => !t.completed).length;
     const activeDeadlinesCount = deadlines.filter((d) => !d.completed && d.daysLeft >= 0).length;
@@ -260,9 +260,17 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                         onClick={() => setIsOpen(false)}
                         className="flex items-center gap-3 p-2 rounded-lg hover:bg-brand-border/40"
                     >
-                        <div className="h-8 w-8 rounded-full bg-brand-border flex items-center justify-center border border-brand-blue/20 text-xs font-bold text-brand-blue">
-                            {userName.substring(0, 2)}
-                        </div>
+                        {avatarUrl ? (
+                            <img
+                                src={avatarUrl}
+                                alt={userName}
+                                className="h-8 w-8 rounded-full object-cover border border-brand-gold/50 flex-shrink-0"
+                            />
+                        ) : (
+                            <div className="h-8 w-8 rounded-full bg-brand-border flex items-center justify-center border border-brand-blue/20 text-xs font-bold text-brand-blue flex-shrink-0">
+                                {userName.substring(0, 2)}
+                            </div>
+                        )}
                         <div className="text-left flex-1 min-w-0">
                             <p className="text-xs font-semibold text-brand-text leading-none mb-0.5 truncate">
                                 {userName}

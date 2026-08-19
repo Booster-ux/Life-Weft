@@ -210,8 +210,13 @@ interface AppContextType {
 
     // User & Preferences
     userName: string;
+    avatarUrl: string | null;
     setUserName: (name: string) => void;
     updateProfile: (fullName: string, timezone?: string) => Promise<void>;
+    uploadAvatar: (file: File) => Promise<string | null>;
+    removeAvatar: () => Promise<void>;
+    onboardingCompleted: boolean;
+    completeOnboarding: () => Promise<void>;
 
     // Ask Lifeweft Query Engine
     queryLifeweft: (question: string) => Promise<AskLifeweftAnswer>;
@@ -342,6 +347,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Profile
     const [userName, setUserNameState] = useState<string>("Julian");
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(true);
 
     // Life Areas & Active Filter
     const [lifeAreas, setLifeAreas] = useState<LifeArea[]>(initialLifeAreas);
@@ -368,8 +375,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 .eq("id", userId)
                 .single();
 
-            if (profile?.full_name) {
-                setUserNameState(profile.full_name);
+            if (profile) {
+                if (profile.full_name) {
+                    setUserNameState(profile.full_name);
+                }
+                if (profile.avatar_url) {
+                    setAvatarUrl(profile.avatar_url);
+                } else {
+                    setAvatarUrl(null);
+                }
+                const isLocalOnboarded = typeof window !== "undefined" && localStorage.getItem(`lw_onboarded_${userId}`) === "true";
+                const isMetaOnboarded = user?.user_metadata?.onboarding_completed === true;
+                setOnboardingCompleted(Boolean(isLocalOnboarded || isMetaOnboarded));
+            } else {
+                setOnboardingCompleted(false);
             }
 
             // 2. Life Areas
@@ -442,7 +461,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 .eq("user_id", userId)
                 .order("created_at", { ascending: true });
 
-            if (goalsData && goalsData.length > 0) {
+            if (goalsData) {
                 setGoals(
                     goalsData.map((g) => ({
                         id: g.id,
@@ -659,6 +678,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     timezone: timezone || "UTC",
                 })
                 .eq("id", user.id);
+        }
+    };
+
+    const uploadAvatar = async (file: File): Promise<string | null> => {
+        if (!user) return null;
+        try {
+            const fileExt = file.name.split(".").pop() || "png";
+            const filePath = `avatars/${user.id}/${Date.now()}.${fileExt}`;
+
+            await supabase.storage
+                .from("user-files")
+                .upload(filePath, file, { upsert: true });
+
+            const { data: { publicUrl } } = supabase.storage
+                .from("user-files")
+                .getPublicUrl(filePath);
+
+            setAvatarUrl(publicUrl);
+            await supabase
+                .from("profiles")
+                .update({ avatar_url: publicUrl })
+                .eq("id", user.id);
+
+            return publicUrl;
+        } catch (err) {
+            console.error("Failed to upload avatar:", err);
+            return null;
+        }
+    };
+
+    const removeAvatar = async () => {
+        if (!user) return;
+        setAvatarUrl(null);
+        await supabase
+            .from("profiles")
+            .update({ avatar_url: null })
+            .eq("id", user.id);
+    };
+
+    const completeOnboarding = async () => {
+        setOnboardingCompleted(true);
+        if (typeof window !== "undefined" && user) {
+            localStorage.setItem(`lw_onboarded_${user.id}`, "true");
+        }
+        if (user) {
+            try {
+                await supabase.auth.updateUser({
+                    data: { onboarding_completed: true },
+                });
+            } catch (err) {
+                console.error("Failed to persist onboarding completion:", err);
+            }
         }
     };
 
@@ -1451,8 +1522,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 updatePlannerSession,
                 deletePlannerSession,
                 userName,
+                avatarUrl,
                 setUserName,
                 updateProfile,
+                uploadAvatar,
+                removeAvatar,
+                onboardingCompleted,
+                completeOnboarding,
                 queryLifeweft,
             }}
         >

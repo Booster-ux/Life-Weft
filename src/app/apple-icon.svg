@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <defs>
+    <linearGradient id="lwBgLg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E3A8A"/>
+      <stop offset="100%" stop-color="#080B12"/>
+    </linearGradient>
+    <linearGradient id="lwGoldLg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D"/>
+      <stop offset="100%" stop-color="#D97706"/>
+    </linearGradient>
+  </defs>
+  <rect width="180" height="180" rx="40" fill="url(#lwBgLg)" stroke="#3B82F6" stroke-width="4"/>
+  <!-- Lifeweft Monogram L -->
+  <path d="M50 40h24v70h42v24H50V40z" fill="#FFFFFF"/>
+  <!-- Gold Accent Sphere -->
+  <circle cx="132" cy="52" r="14" fill="url(#lwGoldLg)"/>
+</svg>

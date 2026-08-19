@@ -36,7 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
     const pathname = usePathname();
     const router = useRouter();
-    const { userName, tasks, deadlines, ledgerEntries, goals, signOut } = useApp();
+    const { userName, avatarUrl, tasks, deadlines, ledgerEntries, goals, signOut } = useApp();
 
     const activeTasksCount = tasks.filter((t) => !t.completed).length;
     const activeDeadlinesCount = deadlines.filter((d) => !d.completed && d.daysLeft >= 0).length;
@@ -179,9 +179,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     className="flex items-center justify-between p-2 rounded-lg hover:bg-brand-border/40 group transition-all"
                 >
                     <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-full bg-brand-border flex items-center justify-center border border-brand-blue/30 text-xs font-bold text-brand-blue uppercase">
-                            {userName.substring(0, 2)}
-                        </div>
+                        {avatarUrl ? (
+                            <img
+                                src={avatarUrl}
+                                alt={userName}
+                                className="h-8 w-8 rounded-full object-cover border border-brand-gold/50 flex-shrink-0"
+                            />
+                        ) : (
+                            <div className="h-8 w-8 rounded-full bg-brand-border flex items-center justify-center border border-brand-blue/30 text-xs font-bold text-brand-blue uppercase flex-shrink-0">
+                                {userName.substring(0, 2)}
+                            </div>
+                        )}
                         <div className="text-left">
                             <p className="text-xs font-semibold text-brand-text leading-tight truncate max-w-[120px]">
                                 {userName}

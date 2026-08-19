@@ -23,7 +23,10 @@ export default function SettingsPage() {
     const {
         user,
         userName,
+        avatarUrl,
         updateProfile,
+        uploadAvatar,
+        removeAvatar,
         signOut,
         lifeAreas,
         addLifeArea,
@@ -37,6 +40,8 @@ export default function SettingsPage() {
     const [profileName, setProfileName] = useState(userName);
     const [profileEmail, setProfileEmail] = useState(user?.email || "julian.v@example.com");
     const [saveSuccess, setSaveSuccess] = useState(false);
+    const [avatarUploading, setAvatarUploading] = useState(false);
+    const [avatarError, setAvatarError] = useState("");
 
     useEffect(() => {
         if (user?.email) {
@@ -113,15 +118,72 @@ export default function SettingsPage() {
                         {getSectionHeader("User Profile", <User size={15} className="text-brand-blue" />)}
 
                         <form onSubmit={handleProfileSave} className="space-y-4">
-                            <div className="flex items-center gap-4 py-2 border-b border-brand-border/30 pb-4">
-                                <div className="h-12 w-12 rounded-full bg-brand-bg border border-brand-blue/30 flex items-center justify-center font-bold text-base text-brand-blue uppercase">
-                                    {profileName.substring(0, 2)}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2 border-b border-brand-border/30 pb-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="relative group">
+                                        {avatarUrl ? (
+                                            <img
+                                                src={avatarUrl}
+                                                alt={profileName}
+                                                className="h-14 w-14 rounded-full object-cover border-2 border-brand-gold/60 shadow-md"
+                                            />
+                                        ) : (
+                                            <div className="h-14 w-14 rounded-full bg-brand-bg border-2 border-brand-blue/30 flex items-center justify-center font-bold text-base text-brand-blue uppercase shadow-md">
+                                                {profileName.substring(0, 2)}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold text-brand-text leading-none">Profile Photo & Identity</p>
+                                        <p className="text-[10px] text-brand-muted mt-1 leading-none">
+                                            JPG, PNG or WEBP up to 5MB.
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-xs font-bold text-brand-text leading-none">Profile Name & Workspace Identity</p>
-                                    <p className="text-[10px] text-brand-muted mt-1 leading-none">Used across Lifeweft greetings and intelligence queries.</p>
+
+                                <div className="flex items-center gap-2">
+                                    <label className="cursor-pointer">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    setAvatarUploading(true);
+                                                    setAvatarError("");
+                                                    try {
+                                                        await uploadAvatar(file);
+                                                    } catch {
+                                                        setAvatarError("Failed to upload avatar.");
+                                                    } finally {
+                                                        setAvatarUploading(false);
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-bg hover:bg-brand-border/40 border border-brand-border text-xs font-semibold text-white transition-colors cursor-pointer">
+                                            {avatarUploading ? "Uploading..." : "Change Photo"}
+                                        </span>
+                                    </label>
+
+                                    {avatarUrl && (
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                await removeAvatar();
+                                            }}
+                                            className="px-2.5 py-1.5 rounded-lg text-xs text-red-400 hover:text-red-300 hover:bg-red-950/30 border border-red-900/40 transition-colors"
+                                        >
+                                            Remove
+                                        </button>
+                                    )}
                                 </div>
                             </div>
+
+                            {avatarError && (
+                                <p className="text-xs text-red-400 font-semibold">{avatarError}</p>
+                            )}
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-1">
