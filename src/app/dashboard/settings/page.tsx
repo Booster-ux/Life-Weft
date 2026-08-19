@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -21,8 +21,10 @@ import {
 export default function SettingsPage() {
     const router = useRouter();
     const {
+        user,
         userName,
-        setUserName,
+        updateProfile,
+        signOut,
         lifeAreas,
         addLifeArea,
         deleteLifeArea,
@@ -33,15 +35,24 @@ export default function SettingsPage() {
 
     // Profile state
     const [profileName, setProfileName] = useState(userName);
-    const [profileEmail, setProfileEmail] = useState("julian.v@example.com");
+    const [profileEmail, setProfileEmail] = useState(user?.email || "julian.v@example.com");
     const [saveSuccess, setSaveSuccess] = useState(false);
+
+    useEffect(() => {
+        if (user?.email) {
+            setProfileEmail(user.email);
+        }
+        if (userName) {
+            setProfileName(userName);
+        }
+    }, [user, userName]);
 
     // Life Areas management state
     const [newAreaName, setNewAreaName] = useState("");
     const [newAreaColor, setNewAreaColor] = useState("#3B82F6");
 
     // Preferences state
-    const [timezone, setTimezone] = useState("UTC+2");
+    const [timezone, setTimezone] = useState("UTC");
     const [dateFormat, setDateFormat] = useState("YYYY-MM-DD");
     const [startOfWeek, setStartOfWeek] = useState("Monday");
 
@@ -50,13 +61,17 @@ export default function SettingsPage() {
     const [deadlineReminders, setDeadlineReminders] = useState(true);
     const [dailySummary, setDailySummary] = useState(false);
 
-    const handleProfileSave = (e: React.FormEvent) => {
+    const handleProfileSave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!profileName.trim()) return;
 
-        setUserName(profileName.trim());
+        await updateProfile(profileName.trim(), timezone);
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 2000);
+    };
+
+    const handleLogout = async () => {
+        await signOut();
     };
 
     const handleAddLifeArea = (e: React.FormEvent) => {
@@ -69,10 +84,6 @@ export default function SettingsPage() {
         });
 
         setNewAreaName("");
-    };
-
-    const handleLogout = () => {
-        router.push("/");
     };
 
     const getSectionHeader = (title: string, icon: React.ReactNode) => (

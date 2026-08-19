@@ -1,12 +1,15 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { User, Session } from "@supabase/supabase-js";
 
 export interface LifeArea {
     id: string;
     name: string;
-    color: string; // Tailwind-friendly or hex color
+    color: string;
     icon?: string;
+    description?: string;
 }
 
 export interface Ledger {
@@ -16,6 +19,7 @@ export interface Ledger {
     color: string;
     lifeAreaId?: string;
     isDefault?: boolean;
+    icon?: string;
 }
 
 export interface LedgerEntry {
@@ -121,57 +125,64 @@ export interface AskLifeweftAnswer {
 }
 
 interface AppContextType {
+    // Auth State
+    user: User | null;
+    session: Session | null;
+    isLoading: boolean;
+    signOut: () => Promise<void>;
+
     // Life Areas
     lifeAreas: LifeArea[];
     activeLifeArea: string; // "all" or specific life area id
     setActiveLifeArea: (id: string) => void;
-    addLifeArea: (area: Omit<LifeArea, "id">) => void;
-    deleteLifeArea: (id: string) => void;
+    addLifeArea: (area: Omit<LifeArea, "id">) => Promise<void>;
+    deleteLifeArea: (id: string) => Promise<void>;
 
     // Ledgers & Entries
     ledgers: Ledger[];
     ledgerEntries: LedgerEntry[];
-    addLedger: (ledger: Omit<Ledger, "id">) => void;
-    deleteLedger: (id: string) => void;
-    addLedgerEntry: (entry: Omit<LedgerEntry, "id" | "createdAt">) => void;
-    updateLedgerEntry: (entry: LedgerEntry) => void;
-    deleteLedgerEntry: (id: string) => void;
+    addLedger: (ledger: Omit<Ledger, "id">) => Promise<void>;
+    deleteLedger: (id: string) => Promise<void>;
+    addLedgerEntry: (entry: Omit<LedgerEntry, "id" | "createdAt">) => Promise<void>;
+    updateLedgerEntry: (entry: LedgerEntry) => Promise<void>;
+    deleteLedgerEntry: (id: string) => Promise<void>;
 
     // Tasks
     tasks: Task[];
-    addTask: (task: Omit<Task, "id">) => void;
-    toggleTask: (id: string) => void;
-    deleteTask: (id: string) => void;
-    updateTask: (task: Task) => void;
+    addTask: (task: Omit<Task, "id">) => Promise<void>;
+    toggleTask: (id: string) => Promise<void>;
+    deleteTask: (id: string) => Promise<void>;
+    updateTask: (task: Task) => Promise<void>;
 
     // Deadlines
     deadlines: Deadline[];
-    addDeadline: (deadline: Omit<Deadline, "id" | "daysLeft" | "completed">) => void;
-    toggleDeadline: (id: string) => void;
-    deleteDeadline: (id: string) => void;
-    updateDeadline: (deadline: Deadline) => void;
+    addDeadline: (deadline: Omit<Deadline, "id" | "daysLeft" | "completed">) => Promise<void>;
+    toggleDeadline: (id: string) => Promise<void>;
+    deleteDeadline: (id: string) => Promise<void>;
+    updateDeadline: (deadline: Deadline) => Promise<void>;
 
     // Decisions
     decisions: Decision[];
-    addDecision: (decision: Omit<Decision, "id" | "createdAt">) => void;
-    updateDecision: (decision: Decision) => void;
-    deleteDecision: (id: string) => void;
+    addDecision: (decision: Omit<Decision, "id" | "createdAt">) => Promise<void>;
+    updateDecision: (decision: Decision) => Promise<void>;
+    deleteDecision: (id: string) => Promise<void>;
 
     // Knowledge
     knowledge: KnowledgeItem[];
-    addKnowledgeItem: (item: Omit<KnowledgeItem, "id" | "createdAt">) => void;
-    updateKnowledgeItem: (item: KnowledgeItem) => void;
-    deleteKnowledgeItem: (id: string) => void;
+    addKnowledgeItem: (item: Omit<KnowledgeItem, "id" | "createdAt">) => Promise<void>;
+    updateKnowledgeItem: (item: KnowledgeItem) => Promise<void>;
+    deleteKnowledgeItem: (id: string) => Promise<void>;
 
     // Planner
     planner: PlannerSession[];
-    addPlannerSession: (session: Omit<PlannerSession, "id">) => void;
-    updatePlannerSession: (session: PlannerSession) => void;
-    deletePlannerSession: (id: string) => void;
+    addPlannerSession: (session: Omit<PlannerSession, "id">) => Promise<void>;
+    updatePlannerSession: (session: PlannerSession) => Promise<void>;
+    deletePlannerSession: (id: string) => Promise<void>;
 
     // User & Preferences
     userName: string;
     setUserName: (name: string) => void;
+    updateProfile: (fullName: string, timezone?: string) => Promise<void>;
 
     // Ask Lifeweft Query Engine
     queryLifeweft: (question: string) => Promise<AskLifeweftAnswer>;
@@ -179,597 +190,892 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// Default Life Areas
+// Initial fallback data for unauthenticated or first-time view
 const initialLifeAreas: LifeArea[] = [
     { id: "area-personal", name: "Personal", color: "#3B82F6" },
-    { id: "area-work", name: "Work", color: "#6366F1" },
+    { id: "area-work", name: "Work", color: "#2563EB" },
     { id: "area-business", name: "Business", color: "#D4A72C" },
     { id: "area-school", name: "School", color: "#10B981" },
-    { id: "area-family", name: "Family", color: "#EC4899" },
-    { id: "area-projects", name: "Projects", color: "#8B5CF6" },
 ];
 
-// Default Ledgers
 const initialLedgers: Ledger[] = [
-    { id: "ldg-personal", name: "Personal", description: "Daily life moments, milestones and reflections", color: "#3B82F6", lifeAreaId: "area-personal", isDefault: true },
-    { id: "ldg-work", name: "Work", description: "Professional achievements, meetings and updates", color: "#6366F1", lifeAreaId: "area-work", isDefault: true },
-    { id: "ldg-business", name: "Startup Journey", description: "Building, launching, revenue and customer notes", color: "#D4A72C", lifeAreaId: "area-business" },
-    { id: "ldg-school", name: "Final Year", description: "Academic milestones, study breakthroughs and thesis", color: "#10B981", lifeAreaId: "area-school" },
+    { id: "ldg-personal", name: "Personal", description: "Daily life moments, milestones and reflections", color: "#3B82F6", isDefault: true },
+    { id: "ldg-work", name: "Work", description: "Professional achievements, meetings and updates", color: "#2563EB", isDefault: false },
+    { id: "ldg-business", name: "Business", description: "Startup milestones, client meetings and strategy", color: "#D4A72C", isDefault: false },
+    { id: "ldg-school", name: "School", description: "Academic milestones, study breakthroughs and thesis", color: "#10B981", isDefault: false },
 ];
 
-// Initial Ledger Entries (Chronological record)
-const initialLedgerEntries: LedgerEntry[] = [
-    {
-        id: "le-1",
-        title: "Client discovery meeting with Apex Studio",
-        description: "Had our first comprehensive kickoff meeting with the new client. They want the complete web brand and portal completed by September 10. Agreed on milestones and sent preliminary scoping document.",
-        date: "2026-08-08",
-        time: "10:30",
-        ledgerId: "ldg-business",
-        lifeAreaId: "area-business",
-        tags: ["Client", "Meeting", "Milestone", "Apex"],
-        relatedDeadlineId: "d2",
-        attachment: { name: "Apex_Project_Scope_v1.pdf", type: "pdf" },
-        createdAt: "2026-08-08T10:30:00.000Z",
-    },
-    {
-        id: "le-2",
-        title: "Selected Supabase for user authentication & data layer",
-        description: "Evaluated Firebase vs Supabase for our new project architecture. Chose Supabase because of Postgres Row Level Security (RLS), clean TypeScript SDK, and seamless SQL migration tooling.",
-        date: "2026-08-07",
-        time: "15:45",
-        ledgerId: "ldg-business",
-        lifeAreaId: "area-business",
-        tags: ["TechStack", "Architecture", "Database"],
-        relatedDecisionId: "dec1",
-        createdAt: "2026-08-07T15:45:00.000Z",
-    },
-    {
-        id: "le-3",
-        title: "Economics thesis outline approved by advisor",
-        description: "Professor Miller reviewed my behavioral pricing model draft and gave the green light. Must submit full Chapter 1 and sample dataset by next week.",
-        date: "2026-08-06",
-        time: "11:15",
-        ledgerId: "ldg-school",
-        lifeAreaId: "area-school",
-        tags: ["Thesis", "Economics", "University"],
-        relatedTaskId: "5",
-        createdAt: "2026-08-06T11:15:00.000Z",
-    },
-    {
-        id: "le-4",
-        title: "Signed annual wellness and fitness membership",
-        description: "Committed to 4 strength training sessions weekly with personal coaching check-in every month. Target is maintaining high mental clarity and stamina.",
-        date: "2026-08-05",
-        time: "08:00",
-        ledgerId: "ldg-personal",
-        lifeAreaId: "area-personal",
-        tags: ["Health", "Habits", "Fitness"],
-        createdAt: "2026-08-05T08:00:00.000Z",
-    },
-];
-
-const initialTasks: Task[] = [
-    { id: "1", title: "Prep for Q3 Project Review presentation", completed: false, time: "Morning", priority: "high", category: "Work", dueDate: "2026-08-08", lifeAreaId: "area-work", tags: ["Presentation", "Q3"] },
-    { id: "2", title: "Review design feedback on Lifeweft landing experience", completed: true, time: "Morning", priority: "high", category: "Work", dueDate: "2026-08-08", lifeAreaId: "area-work", tags: ["Design", "Review"] },
-    { id: "3", title: "Read Chapter 4 of Economics textbook", completed: false, time: "Afternoon", priority: "normal", category: "Student", dueDate: "2026-08-08", lifeAreaId: "area-school", tags: ["Study"] },
-    { id: "4", title: "Renew gym membership locker & schedule trainer", completed: false, time: "Afternoon", priority: "normal", category: "Health", dueDate: "2026-08-08", lifeAreaId: "area-personal", tags: ["Health"] },
-    { id: "5", title: "Submit Statistics Homework Dataset", completed: false, time: "Evening", priority: "high", category: "Student", dueDate: "2026-08-10", deadlineId: "d1", lifeAreaId: "area-school", tags: ["Stats", "Homework"] },
-    { id: "6", title: "Buy groceries: oats, organic berries, eggs, wild salmon", completed: false, time: "Evening", priority: "low", category: "Personal", dueDate: "2026-08-08", lifeAreaId: "area-personal", tags: ["Nutrition"] },
-    { id: "7", title: "Plan upcoming summer flight itinerary", completed: true, time: "Evening", priority: "normal", category: "Personal", dueDate: "2026-08-07", lifeAreaId: "area-personal", tags: ["Travel"] },
-];
-
-const initialDeadlines: Deadline[] = [
-    { id: "d1", title: "Statistics Term Assignment", dueDate: "2026-08-10", daysLeft: 2, priority: "high", relatedTaskId: "5", completed: false, lifeAreaId: "area-school", time: "23:59", notes: "Requires SPSS charts and data regression table." },
-    { id: "d2", title: "Project Deliverable Alpha Launch (Apex)", dueDate: "2026-08-13", daysLeft: 5, priority: "high", completed: false, lifeAreaId: "area-business", time: "18:00", notes: "Final staging walkthrough with client stakeholder." },
-    { id: "d3", title: "Tax Declaration Filing 2025", dueDate: "2026-08-23", daysLeft: 15, priority: "normal", completed: false, lifeAreaId: "area-personal", notes: "Submit electronic filing via government tax portal." },
-    { id: "d4", title: "Draft Proposal for Brand Refresh", dueDate: "2026-08-06", daysLeft: -2, priority: "normal", completed: true, lifeAreaId: "area-work", notes: "Initial brand guidelines deck sent." },
-];
-
-const initialDecisions: Decision[] = [
-    {
-        id: "dec1",
-        title: "Frontend & Database Stack Selection for Lifeweft",
-        situation: "Choosing the optimal database architecture and auth system for high-privacy personal life data.",
-        options: [
-            {
-                name: "Option A: Supabase (PostgreSQL + RLS)",
-                pros: ["Row Level Security ensures absolute user privacy", "Relational querying for interconnected life data", "Clean TypeScript SDK"],
-                cons: ["Slightly steeper SQL migration curve than NoSQL"],
-                cost: "$0-$25/mo",
-                time: "Immediate setup",
-                risks: "Low"
-            },
-            {
-                name: "Option B: Firebase Firestore (NoSQL)",
-                pros: ["Fast initial prototype setup", "Generous free tier"],
-                cons: ["Complex multi-entity relational queries across tasks/ledger", "Vendor lock-in"],
-                cost: "Usage-based",
-                time: "Fast",
-                risks: "Query limitations as features expand"
-            }
-        ],
-        chosenOption: "Option A: Supabase (PostgreSQL + RLS)",
-        reason: "PostgreSQL Row Level Security matches Lifeweft's privacy-first ethos, and relational schema easily joins ledger entries with tasks, deadlines, and decisions.",
-        expectedOutcome: "Robust data security with flexible multi-entity queries.",
-        actualOutcome: "Fast querying and clean local-first synchronizing patterns.",
-        status: "Decided",
-        recommendedStep: "Configure Supabase client and structure relational schemas with foreign keys.",
-        lifeAreaId: "area-business",
-        createdAt: "2026-08-07"
+function calculateDaysLeft(dueDateStr: string): number {
+    try {
+        const target = new Date(dueDateStr);
+        const today = new Date("2026-08-08"); // Current workspace base anchor
+        const diffTime = target.getTime() - today.getTime();
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    } catch {
+        return 0;
     }
-];
-
-const initialKnowledge: KnowledgeItem[] = [
-    {
-        id: "k1",
-        title: "Lifeweft Brand & Design System Principles",
-        content: "Core Aesthetic:\n- Background: #080B12 (Deep Black)\n- Surface: #0F1523 (Sleek Dark Blue Surface)\n- Primary Accent: #2563EB (Electric Blue)\n- Highlight Accent: #D4A72C (Refined Gold - use with intentional restraint)\n- Mood: Calm, Intelligent, Modern, Organized, Human. Not a cluttered spreadsheet.",
-        category: "Notes",
-        lifeAreaId: "area-work",
-        tags: ["DesignSystem", "Colors", "Branding"],
-        createdAt: "2026-08-08"
-    },
-    {
-        id: "k2",
-        title: "Growth & Product Architecture Vision",
-        content: "Lifeweft is the personal information layer that understands a person's life:\n1. Personal Ledger = What happened & memory timeline\n2. Tasks & Deadlines = What needs to be done\n3. Decisions = Why choices were made\n4. Ask Lifeweft = Intelligent conversation over personal context",
-        category: "Ideas",
-        lifeAreaId: "area-business",
-        tags: ["Strategy", "Vision"],
-        createdAt: "2026-08-06"
-    },
-    {
-        id: "k3",
-        title: "Shortcuts & Command Palette Reference",
-        content: "Keyboard Shortcuts:\n- Ctrl+K / Cmd+K: Open Universal Global Search\n- Quick Capture (+): Instant capture modal\n- 1-9: Navigate primary life areas",
-        category: "References",
-        lifeAreaId: "area-personal",
-        tags: ["Shortcuts", "Workflow"],
-        createdAt: "2026-08-05"
-    },
-    {
-        id: "k4",
-        title: "Healthy Sleep & Focus Optimization Routine",
-        content: "1. No screens 45 minutes before sleep.\n2. Keep room temperature at 18°C / 65°F.\n3. Morning sunlight exposure within 20 minutes of waking for circadian alignment.",
-        category: "Saved Items",
-        lifeAreaId: "area-personal",
-        tags: ["Wellness", "Sleep"],
-        createdAt: "2026-08-04"
-    }
-];
-
-const initialPlanner: PlannerSession[] = [
-    { id: "p1", day: "Monday", title: "Deep Work: Project Architecture", time: "09:00 - 11:30", type: "work", lifeAreaId: "area-work" },
-    { id: "p2", day: "Monday", title: "Economics Lecture & Research", time: "14:00 - 16:00", type: "study", lifeAreaId: "area-school" },
-    { id: "p3", day: "Tuesday", title: "Client Strategy & Review", time: "10:00 - 12:00", type: "work", lifeAreaId: "area-business" },
-    { id: "p4", day: "Wednesday", title: "Statistics Lab & Analysis", time: "13:30 - 15:30", type: "study", lifeAreaId: "area-school" },
-    { id: "p5", day: "Thursday", title: "Gym & Strength Conditioning", time: "17:00 - 18:30", type: "health", lifeAreaId: "area-personal" },
-    { id: "p6", day: "Friday", title: "Weekly Retro & Memory Journaling", time: "15:00 - 16:00", type: "personal", lifeAreaId: "area-personal" },
-];
+}
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const supabase = createClient();
+
+    // Auth State
+    const [user, setUser] = useState<User | null>(null);
+    const [session, setSession] = useState<Session | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+
+    // Profile
+    const [userName, setUserNameState] = useState<string>("Julian");
+
+    // Life Areas & Active Filter
     const [lifeAreas, setLifeAreas] = useState<LifeArea[]>(initialLifeAreas);
     const [activeLifeArea, setActiveLifeArea] = useState<string>("all");
+
+    // Domain collections
     const [ledgers, setLedgers] = useState<Ledger[]>(initialLedgers);
-    const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>(initialLedgerEntries);
-    const [tasks, setTasks] = useState<Task[]>(initialTasks);
-    const [deadlines, setDeadlines] = useState<Deadline[]>(initialDeadlines);
-    const [decisions, setDecisions] = useState<Decision[]>(initialDecisions);
-    const [knowledge, setKnowledge] = useState<KnowledgeItem[]>(initialKnowledge);
-    const [planner, setPlanner] = useState<PlannerSession[]>(initialPlanner);
-    const [userName, setUserName] = useState<string>("Julian");
+    const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
+    const [tasks, setTasks] = useState<Task[]>([]);
+    const [deadlines, setDeadlines] = useState<Deadline[]>([]);
+    const [decisions, setDecisions] = useState<Decision[]>([]);
+    const [knowledge, setKnowledge] = useState<KnowledgeItem[]>([]);
+    const [planner, setPlanner] = useState<PlannerSession[]>([]);
 
-    // Hydrate state from localStorage on client mount
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            const storedLifeAreas = localStorage.getItem("lw_life_areas");
-            const storedLedgers = localStorage.getItem("lw_ledgers");
-            const storedLedgerEntries = localStorage.getItem("lw_ledger_entries");
-            const storedTasks = localStorage.getItem("lw_tasks");
-            const storedDeadlines = localStorage.getItem("lw_deadlines");
-            const storedDecisions = localStorage.getItem("lw_decisions");
-            const storedKnowledge = localStorage.getItem("lw_knowledge");
-            const storedPlanner = localStorage.getItem("lw_planner");
-            const storedUser = localStorage.getItem("lw_username");
+    // Fetch all user-owned data from Supabase
+    const fetchUserData = useCallback(async (userId: string) => {
+        setIsLoading(true);
+        try {
+            // 1. Profile
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("*")
+                .eq("id", userId)
+                .single();
 
-            if (storedLifeAreas) setLifeAreas(JSON.parse(storedLifeAreas));
-            if (storedLedgers) setLedgers(JSON.parse(storedLedgers));
-            if (storedLedgerEntries) setLedgerEntries(JSON.parse(storedLedgerEntries));
-            if (storedTasks) setTasks(JSON.parse(storedTasks));
-            if (storedDeadlines) setDeadlines(JSON.parse(storedDeadlines));
-            if (storedDecisions) setDecisions(JSON.parse(storedDecisions));
-            if (storedKnowledge) setKnowledge(JSON.parse(storedKnowledge));
-            if (storedPlanner) setPlanner(JSON.parse(storedPlanner));
-            if (storedUser) setUserName(storedUser);
+            if (profile?.full_name) {
+                setUserNameState(profile.full_name);
+            }
+
+            // 2. Life Areas
+            const { data: areasData } = await supabase
+                .from("life_areas")
+                .select("*")
+                .eq("user_id", userId)
+                .order("created_at", { ascending: true });
+
+            if (areasData && areasData.length > 0) {
+                setLifeAreas(
+                    areasData.map((a) => ({
+                        id: a.id,
+                        name: a.name,
+                        color: a.color || "#3B82F6",
+                        icon: a.icon || undefined,
+                        description: a.description || undefined,
+                    }))
+                );
+            }
+
+            // 3. Ledgers
+            const { data: ledgersData } = await supabase
+                .from("ledgers")
+                .select("*")
+                .eq("user_id", userId)
+                .order("created_at", { ascending: true });
+
+            if (ledgersData && ledgersData.length > 0) {
+                setLedgers(
+                    ledgersData.map((l) => ({
+                        id: l.id,
+                        name: l.name,
+                        description: l.description || "",
+                        color: l.color || "#3B82F6",
+                        isDefault: l.is_default,
+                        icon: l.icon || undefined,
+                    }))
+                );
+            }
+
+            // 4. Ledger Entries
+            const { data: entriesData } = await supabase
+                .from("ledger_entries")
+                .select("*")
+                .eq("user_id", userId)
+                .order("entry_date", { ascending: false });
+
+            if (entriesData) {
+                setLedgerEntries(
+                    entriesData.map((e) => ({
+                        id: e.id,
+                        title: e.title,
+                        description: e.content || "",
+                        date: e.entry_date ? e.entry_date.split("T")[0] : new Date().toISOString().split("T")[0],
+                        time: e.entry_date && e.entry_date.includes("T") ? e.entry_date.split("T")[1].substring(0, 5) : undefined,
+                        ledgerId: e.ledger_id,
+                        lifeAreaId: e.life_area_id || undefined,
+                        tags: (e.metadata as any)?.tags || [],
+                        createdAt: e.created_at,
+                    }))
+                );
+            }
+
+            // 5. Tasks
+            const { data: tasksData } = await supabase
+                .from("tasks")
+                .select("*")
+                .eq("user_id", userId)
+                .order("created_at", { ascending: false });
+
+            if (tasksData) {
+                setTasks(
+                    tasksData.map((t) => ({
+                        id: t.id,
+                        title: t.title,
+                        completed: t.status === "completed",
+                        priority: (t.priority as "high" | "normal" | "low") || "normal",
+                        category: "Personal",
+                        dueDate: t.due_date ? t.due_date.split("T")[0] : undefined,
+                        lifeAreaId: t.life_area_id || undefined,
+                        time: t.time_window || undefined,
+                    }))
+                );
+            }
+
+            // 6. Deadlines
+            const { data: deadlinesData } = await supabase
+                .from("deadlines")
+                .select("*")
+                .eq("user_id", userId)
+                .order("due_at", { ascending: true });
+
+            if (deadlinesData) {
+                setDeadlines(
+                    deadlinesData.map((d) => {
+                        const dueDateStr = d.due_at ? d.due_at.split("T")[0] : "2026-08-10";
+                        return {
+                            id: d.id,
+                            title: d.title,
+                            dueDate: dueDateStr,
+                            daysLeft: calculateDaysLeft(dueDateStr),
+                            priority: (d.priority as "high" | "normal" | "low") || "normal",
+                            completed: d.status === "completed",
+                            lifeAreaId: d.life_area_id || undefined,
+                            notes: d.description || undefined,
+                            relatedTaskId: d.related_task_id || undefined,
+                        };
+                    })
+                );
+            }
+
+            // 7. Decisions
+            const { data: decisionsData } = await supabase
+                .from("decisions")
+                .select("*")
+                .eq("user_id", userId)
+                .order("created_at", { ascending: false });
+
+            if (decisionsData) {
+                setDecisions(
+                    decisionsData.map((d) => ({
+                        id: d.id,
+                        title: d.title,
+                        situation: d.situation,
+                        options: Array.isArray(d.options) ? (d.options as any) : [],
+                        chosenOption: d.chosen_option || undefined,
+                        reason: d.reason || undefined,
+                        expectedOutcome: d.expected_outcome || undefined,
+                        actualOutcome: d.actual_outcome || undefined,
+                        status: (d.status as any) || "Under Consideration",
+                        lifeAreaId: d.life_area_id || undefined,
+                        createdAt: d.created_at ? d.created_at.split("T")[0] : "2026-08-08",
+                    }))
+                );
+            }
+
+            // 8. Knowledge Items
+            const { data: knowledgeData } = await supabase
+                .from("knowledge_items")
+                .select("*")
+                .eq("user_id", userId)
+                .order("created_at", { ascending: false });
+
+            if (knowledgeData) {
+                setKnowledge(
+                    knowledgeData.map((k) => ({
+                        id: k.id,
+                        title: k.title,
+                        content: k.content,
+                        category: (k.category as any) || "Notes",
+                        source_url: k.source_url || undefined,
+                        lifeAreaId: k.life_area_id || undefined,
+                        tags: (k.metadata as any)?.tags || [],
+                        url: k.source_url || undefined,
+                        createdAt: k.created_at ? k.created_at.split("T")[0] : "2026-08-08",
+                    }))
+                );
+            }
+
+            // 9. Planner Items
+            const { data: plannerData } = await supabase
+                .from("planner_items")
+                .select("*")
+                .eq("user_id", userId)
+                .order("created_at", { ascending: true });
+
+            if (plannerData) {
+                setPlanner(
+                    plannerData.map((p) => ({
+                        id: p.id,
+                        day: p.day_of_week || "Monday",
+                        title: p.title,
+                        time: p.time_window || "09:00 - 11:00",
+                        type: (p.item_type as any) || "work",
+                        lifeAreaId: p.life_area_id || undefined,
+                    }))
+                );
+            }
+        } catch (err) {
+            console.error("Error loading user data from Supabase:", err);
+        } finally {
+            setIsLoading(false);
         }
-    }, []);
+    }, [supabase]);
 
-    // Persist changes to localStorage
+    // Auth State Synchronization
     useEffect(() => {
-        if (typeof window !== "undefined") {
-            localStorage.setItem("lw_life_areas", JSON.stringify(lifeAreas));
-        }
-    }, [lifeAreas]);
+        const initAuth = async () => {
+            try {
+                const { data: { session: currentSession } } = await supabase.auth.getSession();
+                setSession(currentSession);
+                setUser(currentSession?.user ?? null);
 
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            localStorage.setItem("lw_ledgers", JSON.stringify(ledgers));
-        }
-    }, [ledgers]);
-
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            localStorage.setItem("lw_ledger_entries", JSON.stringify(ledgerEntries));
-        }
-    }, [ledgerEntries]);
-
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            localStorage.setItem("lw_tasks", JSON.stringify(tasks));
-        }
-    }, [tasks]);
-
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            localStorage.setItem("lw_deadlines", JSON.stringify(deadlines));
-        }
-    }, [deadlines]);
-
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            localStorage.setItem("lw_decisions", JSON.stringify(decisions));
-        }
-    }, [decisions]);
-
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            localStorage.setItem("lw_knowledge", JSON.stringify(knowledge));
-        }
-    }, [knowledge]);
-
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            localStorage.setItem("lw_planner", JSON.stringify(planner));
-        }
-    }, [planner]);
-
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            localStorage.setItem("lw_username", userName);
-        }
-    }, [userName]);
-
-    // Life Areas methods
-    const addLifeArea = (areaData: Omit<LifeArea, "id">) => {
-        const newArea: LifeArea = {
-            ...areaData,
-            id: "area-" + Math.random().toString(36).substr(2, 9),
+                if (currentSession?.user) {
+                    await fetchUserData(currentSession.user.id);
+                } else {
+                    setIsLoading(false);
+                }
+            } catch {
+                setIsLoading(false);
+            }
         };
+
+        initAuth();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+            setSession(newSession);
+            setUser(newSession?.user ?? null);
+
+            if (newSession?.user) {
+                await fetchUserData(newSession.user.id);
+            } else {
+                setTasks([]);
+                setDeadlines([]);
+                setLedgerEntries([]);
+                setDecisions([]);
+                setKnowledge([]);
+                setPlanner([]);
+                setIsLoading(false);
+            }
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, [supabase, fetchUserData]);
+
+    // Sign Out Action
+    const signOut = async () => {
+        await supabase.auth.signOut();
+        window.location.href = "/login";
+    };
+
+    // Profile Name Updater
+    const setUserName = (name: string) => {
+        setUserNameState(name);
+        if (user) {
+            supabase
+                .from("profiles")
+                .update({ full_name: name })
+                .eq("id", user.id)
+                .then();
+        }
+    };
+
+    const updateProfile = async (fullName: string, timezone?: string) => {
+        setUserNameState(fullName);
+        if (user) {
+            await supabase
+                .from("profiles")
+                .update({
+                    full_name: fullName,
+                    timezone: timezone || "UTC",
+                })
+                .eq("id", user.id);
+        }
+    };
+
+    // ==========================================
+    // Life Areas CRUD
+    // ==========================================
+    const addLifeArea = async (area: Omit<LifeArea, "id">) => {
+        const tempId = `area-${Date.now()}`;
+        const newArea: LifeArea = { ...area, id: tempId };
         setLifeAreas((prev) => [...prev, newArea]);
-    };
 
-    const deleteLifeArea = (id: string) => {
-        setLifeAreas((prev) => prev.filter((a) => a.id !== id));
-        if (activeLifeArea === id) {
-            setActiveLifeArea("all");
+        if (user) {
+            const { data, error } = await supabase
+                .from("life_areas")
+                .insert({
+                    user_id: user.id,
+                    name: area.name,
+                    color: area.color,
+                    icon: area.icon,
+                    description: area.description,
+                })
+                .select("id")
+                .single();
+
+            if (data && !error) {
+                setLifeAreas((prev) => prev.map((a) => (a.id === tempId ? { ...a, id: data.id } : a)));
+            }
         }
     };
 
-    // Ledger methods
-    const addLedger = (ledgerData: Omit<Ledger, "id">) => {
-        const newLedger: Ledger = {
-            ...ledgerData,
-            id: "ldg-" + Math.random().toString(36).substr(2, 9),
-        };
-        setLedgers((prev) => [...prev, newLedger]);
+    const deleteLifeArea = async (id: string) => {
+        setLifeAreas((prev) => prev.filter((a) => a.id !== id));
+        if (activeLifeArea === id) setActiveLifeArea("all");
+
+        if (user) {
+            await supabase.from("life_areas").delete().eq("id", id).eq("user_id", user.id);
+        }
     };
 
-    const deleteLedger = (id: string) => {
+    // ==========================================
+    // Ledgers & Entries CRUD
+    // ==========================================
+    const addLedger = async (ledger: Omit<Ledger, "id">) => {
+        const tempId = `ldg-${Date.now()}`;
+        const newLedger: Ledger = { ...ledger, id: tempId };
+        setLedgers((prev) => [...prev, newLedger]);
+
+        if (user) {
+            const { data, error } = await supabase
+                .from("ledgers")
+                .insert({
+                    user_id: user.id,
+                    name: ledger.name,
+                    description: ledger.description,
+                    color: ledger.color,
+                    is_default: ledger.isDefault || false,
+                })
+                .select("id")
+                .single();
+
+            if (data && !error) {
+                setLedgers((prev) => prev.map((l) => (l.id === tempId ? { ...l, id: data.id } : l)));
+            }
+        }
+    };
+
+    const deleteLedger = async (id: string) => {
         setLedgers((prev) => prev.filter((l) => l.id !== id));
         setLedgerEntries((prev) => prev.filter((e) => e.ledgerId !== id));
+
+        if (user) {
+            await supabase.from("ledgers").delete().eq("id", id).eq("user_id", user.id);
+        }
     };
 
-    const addLedgerEntry = (entryData: Omit<LedgerEntry, "id" | "createdAt">) => {
+    const addLedgerEntry = async (entry: Omit<LedgerEntry, "id" | "createdAt">) => {
+        const tempId = `ent-${Date.now()}`;
         const newEntry: LedgerEntry = {
-            ...entryData,
-            id: "le-" + Math.random().toString(36).substr(2, 9),
+            ...entry,
+            id: tempId,
             createdAt: new Date().toISOString(),
         };
         setLedgerEntries((prev) => [newEntry, ...prev]);
+
+        if (user) {
+            const { data, error } = await supabase
+                .from("ledger_entries")
+                .insert({
+                    user_id: user.id,
+                    ledger_id: entry.ledgerId,
+                    life_area_id: entry.lifeAreaId || null,
+                    title: entry.title,
+                    content: entry.description,
+                    entry_date: entry.date ? `${entry.date}T${entry.time || "00:00"}:00Z` : new Date().toISOString(),
+                    metadata: { tags: entry.tags, attachment: entry.attachment },
+                })
+                .select("id")
+                .single();
+
+            if (data && !error) {
+                setLedgerEntries((prev) => prev.map((e) => (e.id === tempId ? { ...e, id: data.id } : e)));
+            }
+        }
     };
 
-    const updateLedgerEntry = (updatedEntry: LedgerEntry) => {
-        setLedgerEntries((prev) =>
-            prev.map((e) => (e.id === updatedEntry.id ? updatedEntry : e))
-        );
+    const updateLedgerEntry = async (entry: LedgerEntry) => {
+        setLedgerEntries((prev) => prev.map((e) => (e.id === entry.id ? entry : e)));
+
+        if (user) {
+            await supabase
+                .from("ledger_entries")
+                .update({
+                    ledger_id: entry.ledgerId,
+                    life_area_id: entry.lifeAreaId || null,
+                    title: entry.title,
+                    content: entry.description,
+                    entry_date: entry.date ? `${entry.date}T${entry.time || "00:00"}:00Z` : new Date().toISOString(),
+                    metadata: { tags: entry.tags, attachment: entry.attachment },
+                })
+                .eq("id", entry.id)
+                .eq("user_id", user.id);
+        }
     };
 
-    const deleteLedgerEntry = (id: string) => {
+    const deleteLedgerEntry = async (id: string) => {
         setLedgerEntries((prev) => prev.filter((e) => e.id !== id));
+
+        if (user) {
+            await supabase.from("ledger_entries").delete().eq("id", id).eq("user_id", user.id);
+        }
     };
 
-    // Task methods
-    const addTask = (taskData: Omit<Task, "id">) => {
-        const newTask: Task = {
-            ...taskData,
-            id: "t-" + Math.random().toString(36).substr(2, 9),
-        };
+    // ==========================================
+    // Tasks CRUD
+    // ==========================================
+    const addTask = async (task: Omit<Task, "id">) => {
+        const tempId = `task-${Date.now()}`;
+        const newTask: Task = { ...task, id: tempId };
         setTasks((prev) => [newTask, ...prev]);
+
+        if (user) {
+            const { data, error } = await supabase
+                .from("tasks")
+                .insert({
+                    user_id: user.id,
+                    title: task.title,
+                    status: task.completed ? "completed" : "pending",
+                    priority: task.priority,
+                    due_date: task.dueDate ? `${task.dueDate}T00:00:00Z` : null,
+                    life_area_id: task.lifeAreaId || null,
+                    time_window: task.time || null,
+                })
+                .select("id")
+                .single();
+
+            if (data && !error) {
+                setTasks((prev) => prev.map((t) => (t.id === tempId ? { ...t, id: data.id } : t)));
+            }
+        }
     };
 
-    const toggleTask = (id: string) => {
-        setTasks((prev) =>
-            prev.map((task) =>
-                task.id === id ? { ...task, completed: !task.completed } : task
-            )
-        );
+    const toggleTask = async (id: string) => {
+        const taskToToggle = tasks.find((t) => t.id === id);
+        if (!taskToToggle) return;
+
+        const newCompleted = !taskToToggle.completed;
+        setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: newCompleted } : t)));
+
+        if (user) {
+            await supabase
+                .from("tasks")
+                .update({
+                    status: newCompleted ? "completed" : "pending",
+                    completed_at: newCompleted ? new Date().toISOString() : null,
+                })
+                .eq("id", id)
+                .eq("user_id", user.id);
+        }
     };
 
-    const deleteTask = (id: string) => {
-        setTasks((prev) => prev.filter((task) => task.id !== id));
+    const deleteTask = async (id: string) => {
+        setTasks((prev) => prev.filter((t) => t.id !== id));
+
+        if (user) {
+            await supabase.from("tasks").delete().eq("id", id).eq("user_id", user.id);
+        }
     };
 
-    const updateTask = (updatedTask: Task) => {
-        setTasks((prev) =>
-            prev.map((task) => (task.id === updatedTask.id ? updatedTask : task))
-        );
+    const updateTask = async (task: Task) => {
+        setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
+
+        if (user) {
+            await supabase
+                .from("tasks")
+                .update({
+                    title: task.title,
+                    status: task.completed ? "completed" : "pending",
+                    priority: task.priority,
+                    due_date: task.dueDate ? `${task.dueDate}T00:00:00Z` : null,
+                    life_area_id: task.lifeAreaId || null,
+                    time_window: task.time || null,
+                })
+                .eq("id", task.id)
+                .eq("user_id", user.id);
+        }
     };
 
-    // Deadline methods
-    const addDeadline = (deadlineData: Omit<Deadline, "id" | "daysLeft" | "completed">) => {
-        const rawDueDate = new Date(deadlineData.dueDate);
-        const today = new Date("2026-08-08"); // Current workspace base date
-        const diffTime = rawDueDate.getTime() - today.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
+    // ==========================================
+    // Deadlines CRUD
+    // ==========================================
+    const addDeadline = async (deadline: Omit<Deadline, "id" | "daysLeft" | "completed">) => {
+        const tempId = `dl-${Date.now()}`;
         const newDeadline: Deadline = {
-            ...deadlineData,
-            id: "d-" + Math.random().toString(36).substr(2, 9),
-            daysLeft: isNaN(diffDays) ? 0 : diffDays,
+            ...deadline,
+            id: tempId,
+            daysLeft: calculateDaysLeft(deadline.dueDate),
             completed: false,
         };
+        setDeadlines((prev) => [...prev, newDeadline]);
 
-        // Auto create linked task if requested
-        if (deadlineData.relatedTaskId === "auto-create") {
-            const relatedTaskId = "t-" + Math.random().toString(36).substr(2, 9);
-            const linkedTask: Task = {
-                id: relatedTaskId,
-                title: `Deliver: ${deadlineData.title}`,
-                completed: false,
-                priority: deadlineData.priority,
-                category: "Work",
-                dueDate: deadlineData.dueDate,
-                deadlineId: newDeadline.id,
-                lifeAreaId: deadlineData.lifeAreaId,
-            };
-            setTasks((prev) => [linkedTask, ...prev]);
-            newDeadline.relatedTaskId = relatedTaskId;
-        }
+        if (user) {
+            const { data, error } = await supabase
+                .from("deadlines")
+                .insert({
+                    user_id: user.id,
+                    title: deadline.title,
+                    due_at: `${deadline.dueDate}T${deadline.time || "18:00"}:00Z`,
+                    priority: deadline.priority,
+                    status: "pending",
+                    life_area_id: deadline.lifeAreaId || null,
+                    description: deadline.notes || null,
+                    related_task_id: deadline.relatedTaskId || null,
+                })
+                .select("id")
+                .single();
 
-        setDeadlines((prev) => [newDeadline, ...prev]);
-    };
-
-    const toggleDeadline = (id: string) => {
-        setDeadlines((prev) =>
-            prev.map((d) => (d.id === id ? { ...d, completed: !d.completed } : d))
-        );
-
-        const targetDeadline = deadlines.find((d) => d.id === id);
-        if (targetDeadline?.relatedTaskId) {
-            setTasks((prev) =>
-                prev.map((t) =>
-                    t.id === targetDeadline.relatedTaskId ? { ...t, completed: !targetDeadline.completed } : t
-                )
-            );
+            if (data && !error) {
+                setDeadlines((prev) => prev.map((d) => (d.id === tempId ? { ...d, id: data.id } : d)));
+            }
         }
     };
 
-    const deleteDeadline = (id: string) => {
+    const toggleDeadline = async (id: string) => {
+        const target = deadlines.find((d) => d.id === id);
+        if (!target) return;
+
+        const newCompleted = !target.completed;
+        setDeadlines((prev) => prev.map((d) => (d.id === id ? { ...d, completed: newCompleted } : d)));
+
+        if (user) {
+            await supabase
+                .from("deadlines")
+                .update({ status: newCompleted ? "completed" : "pending" })
+                .eq("id", id)
+                .eq("user_id", user.id);
+        }
+    };
+
+    const deleteDeadline = async (id: string) => {
         setDeadlines((prev) => prev.filter((d) => d.id !== id));
+
+        if (user) {
+            await supabase.from("deadlines").delete().eq("id", id).eq("user_id", user.id);
+        }
     };
 
-    const updateDeadline = (updatedDeadline: Deadline) => {
-        setDeadlines((prev) =>
-            prev.map((d) => (d.id === updatedDeadline.id ? updatedDeadline : d))
-        );
+    const updateDeadline = async (deadline: Deadline) => {
+        setDeadlines((prev) => prev.map((d) => (d.id === deadline.id ? deadline : d)));
+
+        if (user) {
+            await supabase
+                .from("deadlines")
+                .update({
+                    title: deadline.title,
+                    due_at: `${deadline.dueDate}T${deadline.time || "18:00"}:00Z`,
+                    priority: deadline.priority,
+                    status: deadline.completed ? "completed" : "pending",
+                    life_area_id: deadline.lifeAreaId || null,
+                    description: deadline.notes || null,
+                    related_task_id: deadline.relatedTaskId || null,
+                })
+                .eq("id", deadline.id)
+                .eq("user_id", user.id);
+        }
     };
 
-    // Decision methods
-    const addDecision = (decisionData: Omit<Decision, "id" | "createdAt">) => {
+    // ==========================================
+    // Decisions CRUD
+    // ==========================================
+    const addDecision = async (decision: Omit<Decision, "id" | "createdAt">) => {
+        const tempId = `dec-${Date.now()}`;
         const newDecision: Decision = {
-            ...decisionData,
-            id: "dec-" + Math.random().toString(36).substr(2, 9),
+            ...decision,
+            id: tempId,
             createdAt: new Date().toISOString().split("T")[0],
         };
         setDecisions((prev) => [newDecision, ...prev]);
+
+        if (user) {
+            const { data, error } = await supabase
+                .from("decisions")
+                .insert({
+                    user_id: user.id,
+                    life_area_id: decision.lifeAreaId || null,
+                    title: decision.title,
+                    situation: decision.situation,
+                    options: decision.options,
+                    chosen_option: decision.chosenOption || null,
+                    reason: decision.reason || null,
+                    expected_outcome: decision.expectedOutcome || null,
+                    actual_outcome: decision.actualOutcome || null,
+                    status: decision.status,
+                })
+                .select("id")
+                .single();
+
+            if (data && !error) {
+                setDecisions((prev) => prev.map((d) => (d.id === tempId ? { ...d, id: data.id } : d)));
+            }
+        }
     };
 
-    const updateDecision = (updatedDecision: Decision) => {
-        setDecisions((prev) =>
-            prev.map((d) => (d.id === updatedDecision.id ? updatedDecision : d))
-        );
+    const updateDecision = async (decision: Decision) => {
+        setDecisions((prev) => prev.map((d) => (d.id === decision.id ? decision : d)));
+
+        if (user) {
+            await supabase
+                .from("decisions")
+                .update({
+                    life_area_id: decision.lifeAreaId || null,
+                    title: decision.title,
+                    situation: decision.situation,
+                    options: decision.options,
+                    chosen_option: decision.chosenOption || null,
+                    reason: decision.reason || null,
+                    expected_outcome: decision.expectedOutcome || null,
+                    actual_outcome: decision.actualOutcome || null,
+                    status: decision.status,
+                })
+                .eq("id", decision.id)
+                .eq("user_id", user.id);
+        }
     };
 
-    const deleteDecision = (id: string) => {
+    const deleteDecision = async (id: string) => {
         setDecisions((prev) => prev.filter((d) => d.id !== id));
+
+        if (user) {
+            await supabase.from("decisions").delete().eq("id", id).eq("user_id", user.id);
+        }
     };
 
-    // Knowledge methods
-    const addKnowledgeItem = (itemData: Omit<KnowledgeItem, "id" | "createdAt">) => {
+    // ==========================================
+    // Knowledge Items CRUD
+    // ==========================================
+    const addKnowledgeItem = async (item: Omit<KnowledgeItem, "id" | "createdAt">) => {
+        const tempId = `kn-${Date.now()}`;
         const newItem: KnowledgeItem = {
-            ...itemData,
-            id: "k-" + Math.random().toString(36).substr(2, 9),
+            ...item,
+            id: tempId,
             createdAt: new Date().toISOString().split("T")[0],
         };
         setKnowledge((prev) => [newItem, ...prev]);
+
+        if (user) {
+            const { data, error } = await supabase
+                .from("knowledge_items")
+                .insert({
+                    user_id: user.id,
+                    life_area_id: item.lifeAreaId || null,
+                    title: item.title,
+                    content: item.content,
+                    source_url: item.url || null,
+                    category: item.category,
+                    metadata: { tags: item.tags },
+                })
+                .select("id")
+                .single();
+
+            if (data && !error) {
+                setKnowledge((prev) => prev.map((k) => (k.id === tempId ? { ...k, id: data.id } : k)));
+            }
+        }
     };
 
-    const updateKnowledgeItem = (updatedItem: KnowledgeItem) => {
-        setKnowledge((prev) =>
-            prev.map((item) => (item.id === updatedItem.id ? updatedItem : item))
-        );
+    const updateKnowledgeItem = async (item: KnowledgeItem) => {
+        setKnowledge((prev) => prev.map((k) => (k.id === item.id ? item : k)));
+
+        if (user) {
+            await supabase
+                .from("knowledge_items")
+                .update({
+                    life_area_id: item.lifeAreaId || null,
+                    title: item.title,
+                    content: item.content,
+                    source_url: item.url || null,
+                    category: item.category,
+                    metadata: { tags: item.tags },
+                })
+                .eq("id", item.id)
+                .eq("user_id", user.id);
+        }
     };
 
-    const deleteKnowledgeItem = (id: string) => {
-        setKnowledge((prev) => prev.filter((item) => item.id !== id));
+    const deleteKnowledgeItem = async (id: string) => {
+        setKnowledge((prev) => prev.filter((k) => k.id !== id));
+
+        if (user) {
+            await supabase.from("knowledge_items").delete().eq("id", id).eq("user_id", user.id);
+        }
     };
 
-    // Planner methods
-    const addPlannerSession = (sessionData: Omit<PlannerSession, "id">) => {
-        const newSession: PlannerSession = {
-            ...sessionData,
-            id: "p-" + Math.random().toString(36).substr(2, 9),
-        };
+    // ==========================================
+    // Planner Sessions CRUD
+    // ==========================================
+    const addPlannerSession = async (sessionData: Omit<PlannerSession, "id">) => {
+        const tempId = `plan-${Date.now()}`;
+        const newSession: PlannerSession = { ...sessionData, id: tempId };
         setPlanner((prev) => [...prev, newSession]);
+
+        if (user) {
+            const { data, error } = await supabase
+                .from("planner_items")
+                .insert({
+                    user_id: user.id,
+                    title: sessionData.title,
+                    day_of_week: sessionData.day,
+                    time_window: sessionData.time,
+                    item_type: sessionData.type,
+                    life_area_id: sessionData.lifeAreaId || null,
+                })
+                .select("id")
+                .single();
+
+            if (data && !error) {
+                setPlanner((prev) => prev.map((p) => (p.id === tempId ? { ...p, id: data.id } : p)));
+            }
+        }
     };
 
-    const updatePlannerSession = (updatedSession: PlannerSession) => {
-        setPlanner((prev) =>
-            prev.map((s) => (s.id === updatedSession.id ? updatedSession : s))
-        );
+    const updatePlannerSession = async (sessionData: PlannerSession) => {
+        setPlanner((prev) => prev.map((p) => (p.id === sessionData.id ? sessionData : p)));
+
+        if (user) {
+            await supabase
+                .from("planner_items")
+                .update({
+                    title: sessionData.title,
+                    day_of_week: sessionData.day,
+                    time_window: sessionData.time,
+                    item_type: sessionData.type,
+                    life_area_id: sessionData.lifeAreaId || null,
+                })
+                .eq("id", sessionData.id)
+                .eq("user_id", user.id);
+        }
     };
 
-    const deletePlannerSession = (id: string) => {
-        setPlanner((prev) => prev.filter((s) => s.id !== id));
+    const deletePlannerSession = async (id: string) => {
+        setPlanner((prev) => prev.filter((p) => p.id !== id));
+
+        if (user) {
+            await supabase.from("planner_items").delete().eq("id", id).eq("user_id", user.id);
+        }
     };
 
-    // Ask Lifeweft Search & Data Query Engine (Designed for future AI integration)
+    // ==========================================
+    // Ask Lifeweft Query Retriever Engine
+    // ==========================================
     const queryLifeweft = async (question: string): Promise<AskLifeweftAnswer> => {
-        // Simulate a brief natural thinking delay (300ms)
-        await new Promise((res) => setTimeout(res, 350));
+        const q = question.toLowerCase();
+        const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-        const lowerQ = question.toLowerCase();
         const relatedItems: AskLifeweftAnswer["relatedItems"] = [];
         const insights: string[] = [];
+
+        // Context search across tasks
+        const activeTasks = tasks.filter((t) => !t.completed);
+        const matchedTasks = activeTasks.filter(
+            (t) => q.includes("task") || q.includes("do") || q.includes("today") || t.title.toLowerCase().includes(q)
+        );
+        matchedTasks.slice(0, 3).forEach((t) => {
+            relatedItems.push({
+                type: "task",
+                id: t.id,
+                title: t.title,
+                detail: `Priority: ${t.priority} ${t.time ? `• ${t.time}` : ""}`,
+            });
+        });
+
+        // Context search across deadlines
+        const pendingDeadlines = deadlines.filter((d) => !d.completed);
+        const matchedDeadlines = pendingDeadlines.filter(
+            (d) => q.includes("deadline") || q.includes("due") || q.includes("week") || d.title.toLowerCase().includes(q)
+        );
+        matchedDeadlines.slice(0, 3).forEach((d) => {
+            relatedItems.push({
+                type: "deadline",
+                id: d.id,
+                title: d.title,
+                detail: `Due in ${d.daysLeft} days (${d.dueDate})`,
+            });
+        });
+
+        // Context search across ledger
+        const matchedLedger = ledgerEntries.filter(
+            (l) => q.includes("ledger") || q.includes("happened") || q.includes("accomplish") || l.title.toLowerCase().includes(q)
+        );
+        matchedLedger.slice(0, 2).forEach((l) => {
+            relatedItems.push({
+                type: "ledger",
+                id: l.id,
+                title: l.title,
+                detail: `${l.date} • ${l.description.substring(0, 60)}...`,
+            });
+        });
+
+        // Context search across decisions
+        const matchedDecisions = decisions.filter(
+            (d) => q.includes("decid") || q.includes("decision") || q.includes("stack") || d.title.toLowerCase().includes(q)
+        );
+        matchedDecisions.slice(0, 2).forEach((d) => {
+            relatedItems.push({
+                type: "decision",
+                id: d.id,
+                title: d.title,
+                detail: `Status: ${d.status} • Chosen: ${d.chosenOption || "Under Consideration"}`,
+            });
+        });
+
+        // Generate response summary from retrieved workspace context
         let summary = "";
-
-        // 1. Check for "today" or "priorities"
-        if (lowerQ.includes("today") || lowerQ.includes("priorit")) {
-            const todayTasks = tasks.filter((t) => !t.completed && (t.dueDate === "2026-08-08" || t.priority === "high"));
-            const todayDeadlines = deadlines.filter((d) => !d.completed && d.daysLeft <= 2);
-
-            todayTasks.forEach((t) => {
-                relatedItems.push({
-                    type: "task",
-                    id: t.id,
-                    title: t.title,
-                    detail: `Priority: ${t.priority} • ${t.category}`,
-                });
-            });
-
-            todayDeadlines.forEach((d) => {
-                relatedItems.push({
-                    type: "deadline",
-                    id: d.id,
-                    title: d.title,
-                    detail: `Due in ${d.daysLeft} days (${d.dueDate})`,
-                });
-            });
-
-            summary = `You have ${todayTasks.length} active tasks and ${todayDeadlines.length} high-priority deadlines requiring attention. Your top focus is "${todayTasks[0]?.title || "clearing pending items"}".`;
-            insights.push("Schedule your highest impact work in the morning block before checking communications.");
-        }
-        // 2. Check for "deadlines" or "due"
-        else if (lowerQ.includes("deadline") || lowerQ.includes("due")) {
-            const upcoming = deadlines.filter((d) => !d.completed).sort((a, b) => a.daysLeft - b.daysLeft);
-            upcoming.forEach((d) => {
-                relatedItems.push({
-                    type: "deadline",
-                    id: d.id,
-                    title: d.title,
-                    detail: `Due date: ${d.dueDate} (${d.daysLeft >= 0 ? `${d.daysLeft} days left` : "Overdue"})`,
-                });
-            });
-            summary = `You have ${upcoming.length} upcoming deadlines. The most immediate is "${upcoming[0]?.title || "None"}" on ${upcoming[0]?.dueDate || "schedule"}.`;
-        }
-        // 3. Check for "decide" or "decision"
-        else if (lowerQ.includes("decid") || lowerQ.includes("choice") || lowerQ.includes("database") || lowerQ.includes("supabase")) {
-            decisions.forEach((dec) => {
-                relatedItems.push({
-                    type: "decision",
-                    id: dec.id,
-                    title: dec.title || dec.situation,
-                    detail: `Status: ${dec.status} • Chosen: ${dec.chosenOption || "Under review"}`,
-                });
-            });
-            summary = decisions.length > 0
-                ? `You have logged ${decisions.length} strategic decision journals. Your recent recorded decision was: "${decisions[0].title}" where you chose "${decisions[0].chosenOption || "Option under review"}".`
-                : "You haven't logged any decisions matching this query yet.";
-        }
-        // 4. Check for "ledger", "what happened", "client", "business", or "meet"
-        else if (lowerQ.includes("ledger") || lowerQ.includes("happen") || lowerQ.includes("client") || lowerQ.includes("business") || lowerQ.includes("apex") || lowerQ.includes("meet")) {
-            const matchedEntries = ledgerEntries.filter((e) =>
-                lowerQ.includes("ledger") ||
-                e.title.toLowerCase().includes(lowerQ) ||
-                e.description.toLowerCase().includes(lowerQ) ||
-                e.tags.some((t) => lowerQ.includes(t.toLowerCase()))
-            );
-
-            const displayEntries = matchedEntries.length > 0 ? matchedEntries : ledgerEntries;
-            displayEntries.forEach((e) => {
-                relatedItems.push({
-                    type: "ledger",
-                    id: e.id,
-                    title: e.title,
-                    detail: `${e.date} • ${e.description.slice(0, 100)}...`,
-                });
-            });
-
-            summary = `Found ${displayEntries.length} chronological ledger entries. Most recently on ${displayEntries[0]?.date || "today"}: "${displayEntries[0]?.title}".`;
-            insights.push("All client updates and architecture milestones are stored in your Personal Ledger with full relationship tags.");
-        }
-        // 5. Check for "learn" or "knowledge" or "notes"
-        else if (lowerQ.includes("learn") || lowerQ.includes("knowledge") || lowerQ.includes("note") || lowerQ.includes("idea")) {
-            knowledge.forEach((k) => {
-                relatedItems.push({
-                    type: "knowledge",
-                    id: k.id,
-                    title: k.title,
-                    detail: `${k.category} • ${k.content.slice(0, 90)}...`,
-                });
-            });
-            summary = `Your Lifeweft Knowledge Base contains ${knowledge.length} organized reference documents and saved concepts.`;
-        }
-        // 6. Check for "summary" or "week"
-        else if (lowerQ.includes("summar") || lowerQ.includes("week")) {
-            summary = `Weekly Overview: You have ${tasks.filter((t) => t.completed).length} completed tasks, ${tasks.filter((t) => !t.completed).length} active tasks, ${deadlines.filter((d) => !d.completed).length} upcoming deadlines, ${planner.length} planned focus blocks, and ${ledgerEntries.length} timeline ledger entries logged.`;
-            tasks.slice(0, 2).forEach((t) => relatedItems.push({ type: "task", id: t.id, title: t.title }));
-            deadlines.slice(0, 2).forEach((d) => relatedItems.push({ type: "deadline", id: d.id, title: d.title }));
-            ledgerEntries.slice(0, 2).forEach((e) => relatedItems.push({ type: "ledger", id: e.id, title: e.title }));
-            insights.push("You are maintaining solid momentum across Work, Business, and School life areas.");
-        }
-        // 7. General search fallback
-        else {
-            // General query across all items
-            const matchedTasks = tasks.filter((t) => t.title.toLowerCase().includes(lowerQ));
-            const matchedDeadlines = deadlines.filter((d) => d.title.toLowerCase().includes(lowerQ));
-            const matchedLedger = ledgerEntries.filter((e) => e.title.toLowerCase().includes(lowerQ) || e.description.toLowerCase().includes(lowerQ));
-            const matchedKnowledge = knowledge.filter((k) => k.title.toLowerCase().includes(lowerQ) || k.content.toLowerCase().includes(lowerQ));
-
-            matchedTasks.forEach((t) => relatedItems.push({ type: "task", id: t.id, title: t.title }));
-            matchedDeadlines.forEach((d) => relatedItems.push({ type: "deadline", id: d.id, title: d.title }));
-            matchedLedger.forEach((e) => relatedItems.push({ type: "ledger", id: e.id, title: e.title }));
-            matchedKnowledge.forEach((k) => relatedItems.push({ type: "knowledge", id: k.id, title: k.title }));
-
-            summary = relatedItems.length > 0
-                ? `I searched your workspace and found ${relatedItems.length} matching records across tasks, deadlines, ledger entries, and knowledge items.`
-                : `I searched across your tasks, deadlines, ledger entries, decisions, and knowledge notes for "${question}". No exact records matched, but you can create one using Quick Capture (+).`;
+        if (q.includes("today") || q.includes("priorit")) {
+            summary = `You currently have ${activeTasks.length} active tasks in your workspace. ${
+                pendingDeadlines.length > 0 ? `There are ${pendingDeadlines.length} upcoming deadlines on your radar.` : ""
+            }`;
+            if (activeTasks.filter((t) => t.priority === "high").length > 0) {
+                insights.push("You have high-priority items due. Focus on completing these first.");
+            }
+        } else if (q.includes("deadline") || q.includes("week")) {
+            summary = `Found ${pendingDeadlines.length} pending deadlines in your tracker.`;
+            if (pendingDeadlines.some((d) => d.daysLeft <= 3)) {
+                insights.push("One or more deadlines are due within 72 hours.");
+            }
+        } else if (q.includes("decid") || q.includes("decision")) {
+            summary = `You have ${decisions.length} strategic decisions recorded in your Decision Journal.`;
+        } else {
+            summary = `Retrieved ${relatedItems.length} relevant items from your personal memory layer matching "${question}".`;
         }
 
         return {
-            id: "ans-" + Math.random().toString(36).substr(2, 9),
+            id: `ans-${Date.now()}`,
             question,
             summary,
             relatedItems,
             insights: insights.length > 0 ? insights : undefined,
-            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            timestamp,
         };
     };
 
     return (
         <AppContext.Provider
             value={{
+                user,
+                session,
+                isLoading,
+                signOut,
                 lifeAreas,
                 activeLifeArea,
                 setActiveLifeArea,
@@ -806,6 +1112,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 deletePlannerSession,
                 userName,
                 setUserName,
+                updateProfile,
                 queryLifeweft,
             }}
         >
@@ -814,9 +1121,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 };
 
-export const useApp = () => {
+export const useApp = (): AppContextType => {
     const context = useContext(AppContext);
-    if (context === undefined) {
+    if (!context) {
         throw new Error("useApp must be used within an AppProvider");
     }
     return context;

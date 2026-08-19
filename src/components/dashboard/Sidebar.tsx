@@ -34,7 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
     const pathname = usePathname();
     const router = useRouter();
-    const { userName, tasks, deadlines, ledgerEntries } = useApp();
+    const { userName, tasks, deadlines, ledgerEntries, signOut } = useApp();
 
     const activeTasksCount = tasks.filter((t) => !t.completed).length;
     const activeDeadlinesCount = deadlines.filter((d) => !d.completed && d.daysLeft >= 0).length;
@@ -66,8 +66,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { name: "Settings", href: "/dashboard/settings", icon: Settings },
     ];
 
-    const handleLogout = () => {
-        router.push("/");
+    const handleLogout = async () => {
+        await signOut();
     };
 
     return (

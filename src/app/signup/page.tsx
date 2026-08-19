@@ -3,25 +3,28 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useApp } from "@/context/AppContext";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
-import { ArrowLeft, Lock, Mail, User, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Lock, Mail, User, ShieldAlert, CheckCircle2 } from "lucide-react";
 
 export default function SignupPage() {
     const router = useRouter();
-    const { setUserName } = useApp();
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [error, setError] = useState("");
+    const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const supabase = createClient();
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
+        setMessage("");
 
-        if (!name || !email || !password || !confirmPassword) {
+        if (!name.trim() || !email.trim() || !password || !confirmPassword) {
             setError("Please fill in all fields.");
             return;
         }
@@ -42,21 +45,59 @@ export default function SignupPage() {
         }
 
         setLoading(true);
-        setTimeout(() => {
+
+        try {
+            const { data, error: signUpError } = await supabase.auth.signUp({
+                email: email.trim(),
+                password,
+                options: {
+                    data: {
+                        full_name: name.trim(),
+                    },
+                },
+            });
+
+            if (signUpError) {
+                setError(signUpError.message);
+                setLoading(false);
+                return;
+            }
+
+            if (data.session) {
+                // User signed in immediately (e.g. confirm email disabled)
+                router.push("/dashboard");
+                router.refresh();
+            } else if (data.user && !data.session) {
+                // Email confirmation required by Supabase project settings
+                setMessage("Registration successful! Please check your email to confirm your account, then sign in.");
+                setLoading(false);
+            }
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Failed to create account. Please try again.");
             setLoading(false);
-            setUserName(name.trim());
-            router.push("/dashboard");
-        }, 800);
+        }
     };
 
-    const handleGoogleSignup = () => {
+    const handleGoogleSignup = async () => {
         setLoading(true);
         setError("");
-        setTimeout(() => {
+
+        try {
+            const { error: oauthError } = await supabase.auth.signInWithOAuth({
+                provider: "google",
+                options: {
+                    redirectTo: `${window.location.origin}/dashboard`,
+                },
+            });
+
+            if (oauthError) {
+                setError(oauthError.message);
+                setLoading(false);
+            }
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Google signup failed.");
             setLoading(false);
-            setUserName("Julian");
-            router.push("/dashboard");
-        }, 700);
+        }
     };
 
     return (
@@ -88,7 +129,7 @@ export default function SignupPage() {
                     <p className="text-xs text-brand-muted">Get started free. Reclaim control of your memory and life.</p>
                 </div>
 
-                {/* Validation Errors */}
+                {/* Validation / Error Messages */}
                 {error && (
                     <div className="bg-red-950/30 border border-red-900/40 text-red-400 p-3 rounded-lg flex items-start gap-2 text-xs leading-normal animate-shake">
                         <ShieldAlert size={15} className="text-red-400 flex-shrink-0 mt-0.5" />
@@ -96,11 +137,18 @@ export default function SignupPage() {
                     </div>
                 )}
 
+                {message && (
+                    <div className="bg-emerald-950/30 border border-emerald-900/40 text-emerald-400 p-3 rounded-lg flex items-start gap-2 text-xs leading-normal">
+                        <CheckCircle2 size={15} className="text-emerald-400 flex-shrink-0 mt-0.5" />
+                        <span>{message}</span>
+                    </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="space-y-3.5">
                     {/* Name field */}
                     <div className="space-y-1">
                         <label htmlFor="name" className="text-[11px] font-semibold text-brand-muted uppercase tracking-wider">
-                            Name
+                            Full Name
                         </label>
                         <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-brand-muted">
@@ -109,7 +157,7 @@ export default function SignupPage() {
                             <input
                                 id="name"
                                 type="text"
-                                placeholder="Julian V."
+                                placeholder="Julian Vance"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 disabled={loading}
