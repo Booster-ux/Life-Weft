@@ -538,6 +538,28 @@ export default function PlannerPage() {
                         </select>
                     </div>
 
+                    {/* Connect to Task */}
+                    <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">
+                            Connect to Specific Task (Optional)
+                        </label>
+                        <select
+                            onChange={(e) => {
+                                if (e.target.value && !sessionTitle) {
+                                    setSessionTitle(e.target.value);
+                                }
+                            }}
+                            className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-xl px-3 py-2 text-xs focus:border-brand-blue"
+                        >
+                            <option value="">Select task from backlog...</option>
+                            {tasks.filter((t) => !t.completed).map((t) => (
+                                <option key={t.id} value={t.title}>
+                                    {t.title}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
                     {/* Life Area */}
                     <div className="space-y-1">
                         <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">Life Area</label>
