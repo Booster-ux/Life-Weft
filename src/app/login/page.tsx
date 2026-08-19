@@ -16,6 +16,7 @@ import {
     KeyRound,
     RefreshCw,
     Sparkles,
+    UserPlus,
 } from "lucide-react";
 
 function LoginFormContent() {
@@ -27,7 +28,7 @@ function LoginFormContent() {
 
     const [authMode, setAuthMode] = useState<"password" | "otp">("password");
 
-    // Password credentials
+    // Form states
     const [email, setEmail] = useState(initialEmail);
     const [password, setPassword] = useState("");
 
@@ -41,6 +42,7 @@ function LoginFormContent() {
 
     // Messages & feedback
     const [error, setError] = useState(initialError || "");
+    const [unknownEmail, setUnknownEmail] = useState(false);
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(false);
 
@@ -54,11 +56,12 @@ function LoginFormContent() {
         }
     }, [resendCooldown]);
 
-    // Handle password login
+    // Option A: Password Login
     const handlePasswordSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
         setMessage("");
+        setUnknownEmail(false);
 
         const cleanEmail = email.trim();
         const cleanPassword = password.trim();
@@ -86,7 +89,7 @@ function LoginFormContent() {
                 if (errMsg.includes("invalid login credentials") || errMsg.includes("invalid credential")) {
                     setError("Invalid email or password. Please check your credentials.");
                 } else if (errMsg.includes("email not confirmed")) {
-                    setError("Your email has not been verified yet. Use 'Sign in with email code' to verify.");
+                    setError("Email confirmation is pending. You can sign in directly using 'Sign in with email code'.");
                 } else {
                     setError(signInError.message);
                 }
@@ -106,15 +109,16 @@ function LoginFormContent() {
         }
     };
 
-    // Send OTP Code for Login
+    // Option B: Send OTP Code (ONLY for existing users, shouldCreateUser: false)
     const handleSendOtp = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
         setError("");
         setMessage("");
+        setUnknownEmail(false);
 
         const cleanEmail = email.trim();
         if (!cleanEmail || !/\S+@\S+\.\S+/.test(cleanEmail)) {
-            setError("Please enter a valid email address to receive your code.");
+            setError("Please enter a valid email address.");
             return;
         }
 
@@ -124,16 +128,21 @@ function LoginFormContent() {
             const { error: otpError } = await supabase.auth.signInWithOtp({
                 email: cleanEmail,
                 options: {
-                    shouldCreateUser: false, // Login mode
+                    shouldCreateUser: false, // Prevents automatic account creation for unknown emails
                 },
             });
 
             if (otpError) {
                 const errMsg = otpError.message.toLowerCase();
-                if (errMsg.includes("signups not allowed for otp") || errMsg.includes("user not found")) {
-                    setError("No account found with this email. Please create an account first.");
+                if (
+                    errMsg.includes("signups not allowed for otp") ||
+                    errMsg.includes("user not found") ||
+                    errMsg.includes("invalid")
+                ) {
+                    setUnknownEmail(true);
+                    setError("That email does not have a Lifeweft account. Sign up first.");
                 } else if (errMsg.includes("rate limit") || errMsg.includes("too many requests")) {
-                    setError("You can request another code in 30 seconds.");
+                    setError("Please wait before requesting another code.");
                 } else {
                     setError(otpError.message);
                 }
@@ -142,8 +151,8 @@ function LoginFormContent() {
             }
 
             setOtpStep(true);
-            setResendCooldown(60);
-            setMessage("Code sent to your email. Enter the 6-digit code below.");
+            setResendCooldown(45);
+            setMessage("Enter the 6-digit code sent to your email.");
             setLoading(false);
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to send login code. Please try again.");
@@ -159,7 +168,7 @@ function LoginFormContent() {
 
         const cleanToken = otpCode.trim();
         if (!cleanToken || cleanToken.length < 6) {
-            setError("Enter the 6-digit code.");
+            setError("Enter the 6-digit code sent to your email.");
             return;
         }
 
@@ -175,8 +184,8 @@ function LoginFormContent() {
             if (verifyError) {
                 const errMsg = verifyError.message.toLowerCase();
                 if (errMsg.includes("expired")) {
-                    setError("That code has expired. Request a new one.");
-                } else if (errMsg.includes("invalid") || errMsg.includes("incorrect")) {
+                    setError("That code has expired. Request a new code.");
+                } else if (errMsg.includes("invalid") || errMsg.includes("incorrect") || errMsg.includes("token")) {
                     setError("That code is incorrect.");
                 } else {
                     setError(verifyError.message);
@@ -198,7 +207,7 @@ function LoginFormContent() {
         }
     };
 
-    // Forgot password flow
+    // Password Reset Flow
     const handlePasswordReset = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
@@ -221,7 +230,7 @@ function LoginFormContent() {
             if (resetError) {
                 setError(resetError.message);
             } else {
-                setMessage("Password reset link has been dispatched to your email.");
+                setMessage("Password reset link has been sent to your email.");
             }
             setLoading(false);
         } catch (err: unknown) {
@@ -246,8 +255,11 @@ function LoginFormContent() {
             });
 
             if (oauthError) {
-                if (oauthError.message.includes("provider is not enabled") || oauthError.message.includes("Unsupported provider")) {
-                    setError("Google sign-in is currently pending activation in the Supabase dashboard. Please sign in with email or password.");
+                if (
+                    oauthError.message.includes("provider is not enabled") ||
+                    oauthError.message.includes("Unsupported provider")
+                ) {
+                    setError("Google sign-in is currently pending activation in your Supabase dashboard. Please sign in with password or email code.");
                 } else {
                     setError(oauthError.message);
                 }
@@ -261,7 +273,7 @@ function LoginFormContent() {
 
     return (
         <div className="min-h-screen bg-brand-bg flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-            {/* Background ambient lighting */}
+            {/* Ambient Lighting */}
             <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-brand-blue/5 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-brand-gold/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -282,18 +294,31 @@ function LoginFormContent() {
                         Welcome Back
                     </h2>
                     <p className="mt-2 text-xs sm:text-sm text-brand-muted">
-                        Sign in to access your personal life workspace.
+                        Sign in to access your personal workspace.
                     </p>
                 </div>
             </div>
 
             <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md relative z-10 px-4 sm:px-0">
                 <div className="bg-brand-surface border border-brand-border rounded-2xl p-6 sm:p-8 shadow-xl">
-                    {/* Error and Info Alerts */}
+                    {/* Feedback Alerts */}
                     {error && (
                         <div className="mb-5 p-3.5 rounded-xl bg-rose-950/30 border border-rose-800/40 flex items-start gap-2.5 text-rose-300 text-xs">
                             <ShieldAlert size={16} className="text-rose-400 flex-shrink-0 mt-0.5" />
-                            <p className="font-semibold leading-relaxed">{error}</p>
+                            <div className="flex-1">
+                                <p className="font-semibold leading-relaxed">{error}</p>
+                                {unknownEmail && (
+                                    <div className="mt-2.5">
+                                        <Link
+                                            href={`/signup?email=${encodeURIComponent(email)}`}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-blue hover:bg-brand-blue-hover text-white rounded-lg text-xs font-bold transition-colors"
+                                        >
+                                            <UserPlus size={13} />
+                                            Sign up for Lifeweft
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
@@ -305,10 +330,10 @@ function LoginFormContent() {
                     )}
 
                     {isResetMode ? (
-                        /* Password Reset Form */
+                        /* Password Reset Request Form */
                         <form onSubmit={handlePasswordReset} className="space-y-4">
                             <div className="p-3.5 bg-brand-bg border border-brand-border rounded-xl space-y-1">
-                                <p className="text-xs font-bold text-white">Reset Workspace Password</p>
+                                <p className="text-xs font-bold text-white">Reset Password</p>
                                 <p className="text-[11px] text-brand-muted">
                                     Enter your registered email to receive a password reset link.
                                 </p>
@@ -337,7 +362,7 @@ function LoginFormContent() {
                                 disabled={loading}
                                 className="w-full font-bold uppercase tracking-wider py-2.5"
                             >
-                                {loading ? "Sending link..." : "Send Reset Link"}
+                                {loading ? "Sending..." : "Send Reset Link"}
                             </Button>
 
                             <button
@@ -357,16 +382,16 @@ function LoginFormContent() {
                             <div className="p-4 bg-brand-bg border border-brand-border rounded-xl space-y-1">
                                 <p className="text-xs font-bold text-white flex items-center gap-1.5">
                                     <KeyRound size={14} className="text-brand-gold" />
-                                    Enter 6-Digit Verification Code
+                                    Enter the 6-digit code sent to your email.
                                 </p>
                                 <p className="text-[11px] text-brand-muted">
-                                    Code sent to <span className="text-white font-mono">{email}</span>
+                                    Sent to <span className="text-white font-mono">{email}</span>
                                 </p>
                             </div>
 
                             <div className="space-y-1">
                                 <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">
-                                    Verification Code
+                                    6-Digit Code
                                 </label>
                                 <input
                                     type="text"
@@ -386,7 +411,7 @@ function LoginFormContent() {
                                 disabled={loading || otpCode.length < 6}
                                 className="w-full font-bold uppercase tracking-wider py-2.5"
                             >
-                                {loading ? "Verifying..." : "Verify & Sign In"}
+                                {loading ? "Verifying..." : "Verify code"}
                             </Button>
 
                             <div className="flex items-center justify-between text-xs pt-2">
@@ -395,6 +420,7 @@ function LoginFormContent() {
                                     onClick={() => {
                                         setOtpStep(false);
                                         setOtpCode("");
+                                        setError("");
                                     }}
                                     className="text-brand-muted hover:text-white"
                                 >
@@ -408,12 +434,12 @@ function LoginFormContent() {
                                     className="text-brand-blue hover:underline disabled:opacity-50 disabled:no-underline font-semibold flex items-center gap-1"
                                 >
                                     <RefreshCw size={11} className={resendCooldown > 0 ? "animate-spin" : ""} />
-                                    {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend Code"}
+                                    {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
                                 </button>
                             </div>
                         </form>
                     ) : (
-                        /* Login Mode Selection: Option A (Password) vs Option B (OTP) */
+                        /* Login Options: Option A vs Option B */
                         <div className="space-y-5">
                             {/* Two Options Clear Tabs */}
                             <div className="grid grid-cols-2 p-1 bg-brand-bg border border-brand-border rounded-xl text-xs font-bold">
@@ -422,6 +448,7 @@ function LoginFormContent() {
                                     onClick={() => {
                                         setAuthMode("password");
                                         setError("");
+                                        setUnknownEmail(false);
                                     }}
                                     className={`py-2 rounded-lg transition-all ${
                                         authMode === "password"
@@ -436,6 +463,7 @@ function LoginFormContent() {
                                     onClick={() => {
                                         setAuthMode("otp");
                                         setError("");
+                                        setUnknownEmail(false);
                                     }}
                                     className={`py-2 rounded-lg transition-all ${
                                         authMode === "otp"
@@ -502,7 +530,7 @@ function LoginFormContent() {
                                         disabled={loading}
                                         className="w-full font-bold uppercase tracking-wider py-2.5 mt-2"
                                     >
-                                        {loading ? "Signing in..." : "Sign in with password"}
+                                        {loading ? "Signing in..." : "Sign in"}
                                     </Button>
                                 </form>
                             ) : (
@@ -510,7 +538,7 @@ function LoginFormContent() {
                                 <form onSubmit={handleSendOtp} className="space-y-4">
                                     <div className="space-y-1">
                                         <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">
-                                            Registered Email Address
+                                            Email Address
                                         </label>
                                         <div className="relative">
                                             <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-muted" />
@@ -531,7 +559,7 @@ function LoginFormContent() {
                                         disabled={loading}
                                         className="w-full font-bold uppercase tracking-wider py-2.5 mt-2"
                                     >
-                                        {loading ? "Sending code..." : "Send 6-Digit Login Code"}
+                                        {loading ? "Sending code..." : "Send code"}
                                     </Button>
                                 </form>
                             )}

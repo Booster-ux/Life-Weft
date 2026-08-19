@@ -1,22 +1,30 @@
 /**
  * Returns the absolute base site URL for the current environment.
- * Supports Localhost, Vercel Preview Deployments, and Custom Production Domains (https://lifeweft.com).
+ * Prioritizes NEXT_PUBLIC_SITE_URL in production, window.location.origin in the browser,
+ * VERCEL_URL on Vercel preview environments, and http://localhost:3000 locally.
  */
 export function getSiteUrl(): string {
-    if (typeof window !== "undefined" && window.location.origin) {
+    // 1. Explicit NEXT_PUBLIC_SITE_URL
+    const envSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+    if (envSiteUrl && envSiteUrl.trim() !== "") {
+        let clean = envSiteUrl.trim();
+        if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
+            clean = `https://${clean}`;
+        }
+        return clean.replace(/\/$/, "");
+    }
+
+    // 2. In browser, use current window origin
+    if (typeof window !== "undefined" && window.location && window.location.origin) {
         return window.location.origin;
     }
 
-    let siteUrl =
-        process.env.NEXT_PUBLIC_SITE_URL ||
-        process.env.NEXT_PUBLIC_VERCEL_URL ||
-        "http://localhost:3000";
-
-    // Ensure protocol
-    if (!siteUrl.startsWith("http://") && !siteUrl.startsWith("https://")) {
-        siteUrl = `https://${siteUrl}`;
+    // 3. Vercel environment URL
+    const vercelUrl = process.env.NEXT_PUBLIC_VERCEL_URL || process.env.VERCEL_URL;
+    if (vercelUrl && vercelUrl.trim() !== "") {
+        return `https://${vercelUrl.replace(/\/$/, "")}`;
     }
 
-    // Remove trailing slash
-    return siteUrl.replace(/\/$/, "");
+    // 4. Default local development fallback
+    return "http://localhost:3000";
 }
