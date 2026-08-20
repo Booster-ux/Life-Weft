@@ -68,7 +68,6 @@ export const MobileNav: React.FC<MobileNavProps> = ({
         { name: "Decisions", href: "/dashboard/decisions", icon: GitFork },
         { name: "Personal Ledger", href: "/dashboard/ledger", icon: BookOpen },
         { name: "Knowledge Base", href: "/dashboard/knowledge", icon: Library },
-        { name: "Ask Lifeweft", href: "/dashboard/ask", icon: Sparkles },
         { name: "Settings", href: "/dashboard/settings", icon: Settings },
     ];
 

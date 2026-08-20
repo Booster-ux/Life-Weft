@@ -72,7 +72,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             badge: ledgerEntries.length > 0 ? ledgerEntries.length : undefined,
         },
         { name: "Knowledge", href: "/dashboard/knowledge", icon: Library },
-        { name: "Ask Lifeweft", href: "/dashboard/ask", icon: Sparkles, highlight: true },
         { name: "Settings", href: "/dashboard/settings", icon: Settings },
     ];
 
@@ -140,8 +139,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             href={item.href}
                             className={cn(
                                 "flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all duration-150 smooth-hover text-brand-muted hover:text-brand-text group hover:bg-brand-border/30",
-                                isActive && "bg-brand-blue/10 border border-brand-blue/20 text-brand-blue font-semibold hover:bg-brand-blue/15 hover:text-brand-blue",
-                                item.highlight && !isActive && "text-brand-gold hover:text-brand-gold hover:bg-brand-gold/10 border border-brand-gold/10"
+                                isActive && "bg-brand-blue/10 border border-brand-blue/20 text-brand-blue font-semibold hover:bg-brand-blue/15 hover:text-brand-blue"
                             )}
                         >
                             <div className="flex items-center gap-2.5">
@@ -149,8 +147,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     size={16}
                                     className={cn(
                                         "text-brand-muted group-hover:text-brand-text transition-colors",
-                                        isActive && "text-brand-blue",
-                                        item.highlight && !isActive && "text-brand-gold"
+                                        isActive && "text-brand-blue"
                                     )}
                                 />
                                 <span className={cn(isActive && "text-brand-text font-bold")}>

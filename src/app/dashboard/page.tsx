@@ -395,26 +395,6 @@ export default function DashboardOverview() {
                             </div>
                         )}
                     </div>
-
-                    {/* Ask Lifeweft Intelligence Card */}
-                    <div className="bg-gradient-to-br from-brand-surface to-brand-blue/10 border border-brand-blue/30 rounded-xl p-5 space-y-3">
-                        <div className="flex items-center gap-2">
-                            <Sparkles size={16} className="text-brand-gold animate-pulse" />
-                            <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-                                Intelligence & Memory Assistant
-                            </h4>
-                        </div>
-                        <p className="text-[11px] text-brand-muted leading-relaxed">
-                            Query your entire personal memory layer, deadlines, priorities, strategic goals, and journal insights instantly.
-                        </p>
-                        <Link
-                            href="/dashboard/ask"
-                            className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-blue hover:text-white uppercase tracking-wider transition-colors pt-1"
-                        >
-                            <span>Open Query Engine</span>
-                            <ArrowRight size={13} />
-                        </Link>
-                    </div>
                 </div>
             </div>
         </div>

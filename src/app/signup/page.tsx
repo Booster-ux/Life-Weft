@@ -99,6 +99,14 @@ function SignupFormContent() {
                 return;
             }
 
+            // Check if email already exists via Supabase Email Enumeration Protection
+            if (data?.user && (!data.user.identities || data.user.identities.length === 0)) {
+                setExistingAccount(true);
+                setError("An account with this email already exists.");
+                setLoading(false);
+                return;
+            }
+
             // 2. If session returned directly, authenticate and proceed
             if (data.session) {
                 checkAndNotifyNewDevice(data.session.user.id);

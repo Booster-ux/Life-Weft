@@ -46,7 +46,6 @@ export default function PlannerPage() {
     } = useApp();
 
     const [weekOffset, setWeekOffset] = useState(0); // 0 = current week
-    const [mobileSelectedDay, setMobileSelectedDay] = useState("Saturday");
 
     // Modal state
     const [isAddSessionOpen, setIsAddSessionOpen] = useState(false);
@@ -159,7 +158,7 @@ export default function PlannerPage() {
         }
     };
 
-    const renderDayContent = (dayKey: string) => {
+    const renderDayColumn = (dayKey: string) => {
         const dayDate = getDateForDay(dayKey);
         const isToday = dayDate === "2026-08-08";
 
@@ -183,26 +182,26 @@ export default function PlannerPage() {
             <div
                 key={dayKey}
                 className={cn(
-                    "bg-brand-surface border rounded-xl p-3 flex flex-col min-h-[380px] transition-all relative group",
+                    "flex-1 min-w-[200px] bg-brand-surface border rounded-xl p-3 flex flex-col min-h-[420px] transition-all relative group shadow-sm",
                     isToday
-                        ? "border-brand-gold/60 shadow-lg shadow-brand-gold/5 bg-brand-surface/90"
+                        ? "border-brand-gold/60 shadow-lg shadow-brand-gold/5 bg-brand-surface/95 ring-1 ring-brand-gold/30"
                         : "border-brand-border/80 hover:border-brand-border"
                 )}
             >
-                {/* Day Header */}
-                <div className="flex items-center justify-between pb-2 border-b border-brand-border/40 mb-2.5">
-                    <div className="flex items-center gap-1.5">
+                {/* Horizontal Day Header */}
+                <div className="flex items-center justify-between pb-2.5 border-b border-brand-border/40 mb-3">
+                    <div className="flex items-center gap-2">
                         <span className={cn("text-xs font-bold uppercase tracking-wider", isToday ? "text-brand-gold" : "text-white")}>
                             {dayKey.substring(0, 3)}
                         </span>
-                        <span className="text-[11px] font-mono text-brand-muted">
+                        <span className="text-xs font-mono font-bold text-brand-muted bg-brand-bg px-1.5 py-0.5 rounded border border-brand-border/60">
                             {new Date(dayDate).getDate()}
                         </span>
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                         {isToday && (
-                            <span className="text-[9px] bg-brand-gold/20 text-brand-gold border border-brand-gold/30 px-1.5 py-0.2 rounded font-bold uppercase tracking-wider font-mono">
+                            <span className="text-[9px] bg-brand-gold/20 text-brand-gold border border-brand-gold/30 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider font-mono">
                                 Today
                             </span>
                         )}
@@ -210,20 +209,20 @@ export default function PlannerPage() {
                             type="button"
                             onClick={() => handleOpenAddSession(dayKey)}
                             title="Add focus block"
-                            className="h-5 w-5 rounded bg-brand-bg hover:bg-brand-border border border-brand-border flex items-center justify-center text-brand-muted hover:text-white transition-colors cursor-pointer"
+                            className="h-5 w-5 rounded bg-brand-bg hover:bg-brand-blue/20 hover:text-brand-blue border border-brand-border flex items-center justify-center text-brand-muted transition-colors cursor-pointer"
                         >
-                            <Plus size={11} />
+                            <Plus size={12} />
                         </button>
                     </div>
                 </div>
 
-                {/* Day Elements List */}
-                <div className="flex-1 space-y-2 overflow-y-auto max-h-[320px] pr-0.5 scrollbar-thin">
+                {/* Day Blocks List */}
+                <div className="flex-1 space-y-2 overflow-y-auto max-h-[340px] pr-0.5 scrollbar-thin">
                     {/* Goals Due */}
                     {dayGoals.map((g) => (
                         <div
                             key={g.id}
-                            className="p-1.5 bg-brand-gold/10 border border-brand-gold/30 rounded-lg text-[10px] space-y-0.5"
+                            className="p-2 bg-brand-gold/10 border border-brand-gold/30 rounded-lg text-[10px] space-y-0.5"
                         >
                             <div className="flex items-center gap-1 text-brand-gold font-bold">
                                 <Target size={10} />
@@ -237,7 +236,7 @@ export default function PlannerPage() {
                     {dayDeadlines.map((d) => (
                         <div
                             key={d.id}
-                            className="p-1.5 bg-rose-950/25 border border-rose-800/40 text-rose-300 rounded-lg text-[10px] space-y-0.5"
+                            className="p-2 bg-rose-950/25 border border-rose-800/40 text-rose-300 rounded-lg text-[10px] space-y-0.5"
                         >
                             <div className="flex items-center gap-1 font-bold">
                                 <Clock size={10} className="text-rose-400" />
@@ -256,7 +255,7 @@ export default function PlannerPage() {
                             <div
                                 key={session.id}
                                 className={cn(
-                                    "p-2 border rounded-lg text-[11px] leading-tight space-y-1 group/session relative transition-all shadow-sm",
+                                    "p-2.5 border rounded-lg text-[11px] leading-tight space-y-1.5 group/session relative transition-all shadow-sm",
                                     getSessionColorClass(session.type)
                                 )}
                             >
@@ -273,14 +272,14 @@ export default function PlannerPage() {
                                             onClick={() => handleOpenEditSession(session)}
                                             className="p-0.5 text-brand-muted hover:text-white"
                                         >
-                                            <Edit2 size={9} />
+                                            <Edit2 size={10} />
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => deletePlannerSession(session.id)}
                                             className="p-0.5 text-brand-muted hover:text-rose-400"
                                         >
-                                            <Trash2 size={9} />
+                                            <Trash2 size={10} />
                                         </button>
                                     </div>
                                 </div>
@@ -309,7 +308,7 @@ export default function PlannerPage() {
                     {dayTasks.map((t) => (
                         <div
                             key={t.id}
-                            className="p-1.5 bg-brand-bg border border-brand-border/70 rounded-lg text-[10px] flex items-center justify-between gap-1.5"
+                            className="p-2 bg-brand-bg border border-brand-border/70 rounded-lg text-[10px] flex items-center justify-between gap-1.5"
                         >
                             <div className="flex items-center gap-1.5 min-w-0">
                                 <CheckSquare size={11} className={t.completed ? "text-emerald-400" : "text-brand-blue"} />
@@ -324,8 +323,8 @@ export default function PlannerPage() {
                     ))}
 
                     {daySessions.length === 0 && dayTasks.length === 0 && dayDeadlines.length === 0 && dayGoals.length === 0 && (
-                        <div className="py-6 text-center text-[10px] text-brand-muted/40 italic">
-                            Nothing planned
+                        <div className="py-12 text-center text-[10px] text-brand-muted/40 italic">
+                            Open window
                         </div>
                     )}
                 </div>
@@ -343,7 +342,7 @@ export default function PlannerPage() {
                         Weekly Planner
                     </h1>
                     <p className="text-sm text-brand-muted mt-1 leading-none">
-                        Organize focus blocks and weekly momentum connected to your strategic goals.
+                        Horizontal weekly calendar board organized across all 7 days.
                     </p>
                 </div>
 
@@ -373,13 +372,14 @@ export default function PlannerPage() {
                 </div>
             </div>
 
-            {/* Week Navigation Toolbar */}
-            <div className="flex items-center justify-between p-3 bg-brand-surface border border-brand-border rounded-xl">
+            {/* Horizontal Week Navigation Toolbar */}
+            <div className="flex items-center justify-between p-3 bg-brand-surface border border-brand-border rounded-xl shadow-sm">
                 <div className="flex items-center gap-1.5">
                     <button
                         type="button"
                         onClick={() => setWeekOffset(weekOffset - 1)}
                         className="p-1.5 rounded-lg bg-brand-bg hover:bg-brand-border text-brand-muted hover:text-white transition-colors cursor-pointer"
+                        title="Previous Week"
                     >
                         <ChevronLeft size={16} />
                     </button>
@@ -387,18 +387,19 @@ export default function PlannerPage() {
                         type="button"
                         onClick={() => setWeekOffset(0)}
                         className={cn(
-                            "px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                            "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer uppercase tracking-wider",
                             weekOffset === 0
                                 ? "bg-brand-gold text-black font-extrabold shadow-sm"
                                 : "bg-brand-bg text-brand-muted hover:text-white border border-brand-border"
                         )}
                     >
-                        Current Week
+                        TODAY
                     </button>
                     <button
                         type="button"
                         onClick={() => setWeekOffset(weekOffset + 1)}
                         className="p-1.5 rounded-lg bg-brand-bg hover:bg-brand-border text-brand-muted hover:text-white transition-colors cursor-pointer"
+                        title="Next Week"
                     >
                         <ChevronRight size={16} />
                     </button>
@@ -409,38 +410,11 @@ export default function PlannerPage() {
                 </div>
             </div>
 
-            {/* Mobile View: Day Switcher Tabs + Single Day Card */}
-            <div className="sm:hidden space-y-4">
-                <div className="grid grid-cols-7 gap-1 p-1 bg-brand-surface border border-brand-border rounded-xl text-center">
-                    {DAYS_OF_WEEK.map((day) => {
-                        const isSelected = mobileSelectedDay === day.key;
-                        const isToday = day.key === "Saturday" && weekOffset === 0;
-
-                        return (
-                            <button
-                                key={day.key}
-                                type="button"
-                                onClick={() => setMobileSelectedDay(day.key)}
-                                className={cn(
-                                    "py-2 rounded-lg text-xs font-bold transition-all flex flex-col items-center",
-                                    isSelected
-                                        ? "bg-brand-blue text-white shadow-sm"
-                                        : "text-brand-muted hover:text-white"
-                                )}
-                            >
-                                <span className="text-[10px] uppercase">{day.short}</span>
-                                {isToday && <span className="h-1 w-1 rounded-full bg-brand-gold mt-0.5" />}
-                            </button>
-                        );
-                    })}
+            {/* True Horizontal 7-Day Calendar Board (Side-by-side with smooth horizontal scrolling on mobile/tablet) */}
+            <div className="w-full overflow-x-auto pb-4 scrollbar-thin">
+                <div className="flex gap-3 min-w-[1200px]">
+                    {DAYS_OF_WEEK.map((day) => renderDayColumn(day.key))}
                 </div>
-
-                <div>{renderDayContent(mobileSelectedDay)}</div>
-            </div>
-
-            {/* Desktop View: High Density 7-Column Grid */}
-            <div className="hidden sm:grid sm:grid-cols-7 gap-2.5">
-                {DAYS_OF_WEEK.map((day) => renderDayContent(day.key))}
             </div>
 
             {/* Modal: Schedule / Edit Focus Block */}
