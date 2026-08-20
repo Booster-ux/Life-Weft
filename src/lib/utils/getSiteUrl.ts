@@ -1,10 +1,15 @@
 /**
  * Returns the absolute base site URL for the current environment.
- * Prioritizes NEXT_PUBLIC_SITE_URL in production, window.location.origin in the browser,
- * VERCEL_URL on Vercel preview environments, and http://localhost:3000 locally.
+ * In browser: uses current window.location.origin (always matches current deployment/domain).
+ * On server: checks NEXT_PUBLIC_SITE_URL, VERCEL_URL, or falls back to http://localhost:3000.
  */
 export function getSiteUrl(): string {
-    // 1. Explicit NEXT_PUBLIC_SITE_URL
+    // 1. In browser, window.location.origin is the exact active domain
+    if (typeof window !== "undefined" && window.location && window.location.origin) {
+        return window.location.origin.replace(/\/$/, "");
+    }
+
+    // 2. Explicit NEXT_PUBLIC_SITE_URL
     const envSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
     if (envSiteUrl && envSiteUrl.trim() !== "") {
         let clean = envSiteUrl.trim();
@@ -14,12 +19,7 @@ export function getSiteUrl(): string {
         return clean.replace(/\/$/, "");
     }
 
-    // 2. In browser, use current window origin
-    if (typeof window !== "undefined" && window.location && window.location.origin) {
-        return window.location.origin;
-    }
-
-    // 3. Vercel environment URL
+    // 3. Vercel deployment URL
     const vercelUrl = process.env.NEXT_PUBLIC_VERCEL_URL || process.env.VERCEL_URL;
     if (vercelUrl && vercelUrl.trim() !== "") {
         return `https://${vercelUrl.replace(/\/$/, "")}`;
