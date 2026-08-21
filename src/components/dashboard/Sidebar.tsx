@@ -20,6 +20,7 @@ import {
     Plus,
     LogOut,
     User,
+    ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
     const pathname = usePathname();
     const router = useRouter();
-    const { userName, avatarUrl, tasks, deadlines, ledgerEntries, goals, signOut } = useApp();
+    const { userName, avatarUrl, role, tasks, deadlines, ledgerEntries, goals, signOut } = useApp();
 
     const activeTasksCount = tasks.filter((t) => !t.completed).length;
     const activeDeadlinesCount = deadlines.filter((d) => !d.completed && d.daysLeft >= 0).length;
@@ -72,6 +73,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             badge: ledgerEntries.length > 0 ? ledgerEntries.length : undefined,
         },
         { name: "Knowledge", href: "/dashboard/knowledge", icon: Library },
+        ...(role === "admin"
+            ? [{ name: "Admin Console", href: "/admin", icon: ShieldCheck, badge: "Admin" }]
+            : []),
         { name: "Settings", href: "/dashboard/settings", icon: Settings },
     ];
 

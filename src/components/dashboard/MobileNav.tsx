@@ -22,6 +22,7 @@ import {
     Plus,
     LogOut,
     User,
+    ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -37,7 +38,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
     const [isOpen, setIsOpen] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
-    const { userName, avatarUrl, tasks, deadlines, goals } = useApp();
+    const { userName, avatarUrl, role, tasks, deadlines, goals } = useApp();
 
     const activeTasksCount = tasks.filter((t) => !t.completed).length;
     const activeDeadlinesCount = deadlines.filter((d) => !d.completed && d.daysLeft >= 0).length;
@@ -68,6 +69,9 @@ export const MobileNav: React.FC<MobileNavProps> = ({
         { name: "Decisions", href: "/dashboard/decisions", icon: GitFork },
         { name: "Personal Ledger", href: "/dashboard/ledger", icon: BookOpen },
         { name: "Knowledge Base", href: "/dashboard/knowledge", icon: Library },
+        ...(role === "admin"
+            ? [{ name: "Admin Console", href: "/admin", icon: ShieldCheck, badge: "Admin" }]
+            : []),
         { name: "Settings", href: "/dashboard/settings", icon: Settings },
     ];
 

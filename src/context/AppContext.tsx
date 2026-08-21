@@ -3,6 +3,11 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
+import {
+    getDeviceTimezone,
+    getLocalDateString,
+    calculateDaysLeft,
+} from "@/lib/utils/dateTime";
 
 export interface LifeArea {
     id: string;
@@ -208,11 +213,14 @@ interface AppContextType {
     updatePlannerSession: (session: PlannerSession) => Promise<void>;
     deletePlannerSession: (id: string) => Promise<void>;
 
-    // User & Preferences
+    // User & Preferences & Role
     userName: string;
     avatarUrl: string | null;
+    userTimezone: string;
+    role: "user" | "admin";
     setUserName: (name: string) => void;
     updateProfile: (fullName: string, timezone?: string) => Promise<void>;
+    updateTimezone: (timezone: string) => Promise<void>;
     uploadAvatar: (file: File) => Promise<string | null>;
     removeAvatar: () => Promise<void>;
     onboardingCompleted: boolean;
@@ -326,17 +334,6 @@ const initialGoals: Goal[] = [
     },
 ];
 
-function calculateDaysLeft(dueDateStr: string): number {
-    try {
-        const target = new Date(dueDateStr);
-        const today = new Date("2026-08-08");
-        const diffTime = target.getTime() - today.getTime();
-        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    } catch {
-        return 0;
-    }
-}
-
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const supabase = createClient();
 
@@ -345,9 +342,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [session, setSession] = useState<Session | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
-    // Profile
+    // Profile & Timezone & Role
     const [userName, setUserNameState] = useState<string>("Julian");
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [userTimezone, setUserTimezone] = useState<string>(getDeviceTimezone());
+    const [role, setRole] = useState<"user" | "admin">("user");
     const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(true);
 
     // Life Areas & Active Filter
@@ -367,6 +366,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Fetch all user-owned data from Supabase
     const fetchUserData = useCallback(async (userId: string) => {
         setIsLoading(true);
+        let effectiveTz = getDeviceTimezone();
         try {
             // 1. Profile
             const { data: profile } = await supabase
@@ -384,6 +384,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 } else {
                     setAvatarUrl(null);
                 }
+                if (profile.role) {
+                    setRole(profile.role as "user" | "admin");
+                }
+
+                const detectedTz = getDeviceTimezone();
+                effectiveTz = (profile.timezone && profile.timezone !== "UTC") ? profile.timezone : detectedTz;
+                setUserTimezone(effectiveTz);
+
+                // Auto-sync detected device timezone to profile if profile had default 'UTC'
+                if (profile.timezone === "UTC" && detectedTz !== "UTC") {
+                    supabase.from("profiles").update({ timezone: detectedTz }).eq("id", userId).then();
+                }
+
                 const isLocalOnboarded = typeof window !== "undefined" && localStorage.getItem(`lw_onboarded_${userId}`) === "true";
                 const isMetaOnboarded = user?.user_metadata?.onboarding_completed === true;
                 setOnboardingCompleted(Boolean(isLocalOnboarded || isMetaOnboarded));
@@ -477,7 +490,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                         lifeAreaId: g.life_area_id || undefined,
                         measurableTarget: g.measurable_target || undefined,
                         notes: g.notes || undefined,
-                        createdAt: g.created_at ? g.created_at.split("T")[0] : "2026-08-19",
+                        createdAt: g.created_at ? g.created_at.split("T")[0] : getLocalDateString(new Date(), effectiveTz),
                     }))
                 );
             }
@@ -515,12 +528,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (deadlinesData) {
                 setDeadlines(
                     deadlinesData.map((d) => {
-                        const dueDateStr = d.due_at ? d.due_at.split("T")[0] : "2026-08-10";
+                        const dueDateStr = d.due_at ? d.due_at.split("T")[0] : getLocalDateString(new Date(), effectiveTz);
                         return {
                             id: d.id,
                             title: d.title,
                             dueDate: dueDateStr,
-                            daysLeft: calculateDaysLeft(dueDateStr),
+                            daysLeft: calculateDaysLeft(dueDateStr, effectiveTz),
                             priority: (d.priority as "high" | "normal" | "low") || "normal",
                             completed: d.status === "completed",
                             lifeAreaId: d.life_area_id || undefined,
@@ -552,7 +565,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                         actualOutcome: d.actual_outcome || undefined,
                         status: (d.status as any) || "Under Consideration",
                         lifeAreaId: d.life_area_id || undefined,
-                        createdAt: d.created_at ? d.created_at.split("T")[0] : "2026-08-08",
+                        createdAt: d.created_at ? d.created_at.split("T")[0] : getLocalDateString(new Date(), effectiveTz),
                     }))
                 );
             }
@@ -575,7 +588,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                         lifeAreaId: k.life_area_id || undefined,
                         tags: (k.metadata as any)?.tags || [],
                         url: k.source_url || undefined,
-                        createdAt: k.created_at ? k.created_at.split("T")[0] : "2026-08-08",
+                        createdAt: k.created_at ? k.created_at.split("T")[0] : getLocalDateString(new Date(), effectiveTz),
                     }))
                 );
             }
@@ -670,12 +683,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const updateProfile = async (fullName: string, timezone?: string) => {
         setUserNameState(fullName);
+        const effectiveTz = timezone || userTimezone || getDeviceTimezone();
+        setUserTimezone(effectiveTz);
         if (user) {
             await supabase
                 .from("profiles")
                 .update({
                     full_name: fullName,
-                    timezone: timezone || "UTC",
+                    timezone: effectiveTz,
+                })
+                .eq("id", user.id);
+        }
+    };
+
+    const updateTimezone = async (newTimezone: string) => {
+        setUserTimezone(newTimezone);
+        if (user) {
+            await supabase
+                .from("profiles")
+                .update({
+                    timezone: newTimezone,
                 })
                 .eq("id", user.id);
         }
@@ -1523,8 +1550,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 deletePlannerSession,
                 userName,
                 avatarUrl,
+                userTimezone,
+                role,
                 setUserName,
                 updateProfile,
+                updateTimezone,
                 uploadAvatar,
                 removeAvatar,
                 onboardingCompleted,

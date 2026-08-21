@@ -40,19 +40,36 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser();
 
-    const isDashboardRoute = request.nextUrl.pathname.startsWith("/dashboard");
-    const isAuthRoute =
-        request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/signup";
+    const pathname = request.nextUrl.pathname;
+    const isDashboardRoute = pathname.startsWith("/dashboard");
+    const isAdminRoute = pathname.startsWith("/admin");
+    const isAuthRoute = pathname === "/login" || pathname === "/signup";
 
-    // If unauthenticated user tries to access protected dashboard routes, redirect to login
-    if (!user && isDashboardRoute) {
+    // 1. Unauthenticated users attempting to access /dashboard or /admin
+    if (!user && (isDashboardRoute || isAdminRoute)) {
         const url = request.nextUrl.clone();
         url.pathname = "/login";
-        url.searchParams.set("redirectedFrom", request.nextUrl.pathname);
+        url.searchParams.set("redirectedFrom", pathname);
         return NextResponse.redirect(url);
     }
 
-    // If authenticated user visits login or signup, redirect to dashboard
+    // 2. Authenticated user attempting to access /admin — strictly verify role === 'admin'
+    if (user && isAdminRoute) {
+        const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .single();
+
+        if (!profile || profile.role !== "admin") {
+            const url = request.nextUrl.clone();
+            url.pathname = "/dashboard";
+            url.searchParams.set("error", "unauthorized_admin_access");
+            return NextResponse.redirect(url);
+        }
+    }
+
+    // 3. Authenticated user visits login or signup -> redirect to dashboard
     if (user && isAuthRoute) {
         const url = request.nextUrl.clone();
         url.pathname = "/dashboard";

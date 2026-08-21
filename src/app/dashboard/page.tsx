@@ -24,10 +24,12 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
+import { getLocalDateString, formatLocalDate } from "@/lib/utils/dateTime";
 
 export default function DashboardOverview() {
     const {
         userName,
+        userTimezone,
         tasks,
         deadlines,
         ledgerEntries,
@@ -39,7 +41,8 @@ export default function DashboardOverview() {
         setActiveLifeArea,
     } = useApp();
 
-    const todayDateString = "2026-08-08";
+    const todayDateString = getLocalDateString(new Date(), userTimezone);
+    const todayDayOfWeek = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: userTimezone }).format(new Date());
 
     // Filter tasks by active life area (if set) and due date
     const areaFilteredTasks = activeLifeArea === "all"
@@ -84,7 +87,7 @@ export default function DashboardOverview() {
         .slice(0, 2);
 
     // Today's scheduled planner sessions
-    const todayPlannerSessions = planner.filter((p) => p.day === "Saturday"); // Base date Sat Aug 8
+    const todayPlannerSessions = planner.filter((p) => p.day.toLowerCase() === todayDayOfWeek.toLowerCase());
 
     // Trigger universal capture modal
     const handleOpenCapture = (type?: "task" | "ledger" | "note" | "deadline" | "decision") => {
@@ -106,7 +109,7 @@ export default function DashboardOverview() {
 
                 <div className="text-left sm:text-right">
                     <p className="text-xs font-bold text-brand-muted uppercase tracking-widest font-mono">
-                        {new Date(todayDateString).toLocaleDateString("en-US", {
+                        {formatLocalDate(todayDateString, userTimezone, {
                             weekday: "long",
                             month: "short",
                             day: "numeric",

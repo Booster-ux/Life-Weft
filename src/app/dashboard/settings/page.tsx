@@ -17,6 +17,7 @@ import {
     Plus,
     Trash2,
 } from "lucide-react";
+import { TIMEZONE_OPTIONS, getDeviceTimezone } from "@/lib/utils/dateTime";
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -24,6 +25,7 @@ export default function SettingsPage() {
         user,
         userName,
         avatarUrl,
+        userTimezone,
         updateProfile,
         uploadAvatar,
         removeAvatar,
@@ -43,6 +45,9 @@ export default function SettingsPage() {
     const [avatarUploading, setAvatarUploading] = useState(false);
     const [avatarError, setAvatarError] = useState("");
 
+    // Preferences state
+    const [timezone, setTimezone] = useState(userTimezone || getDeviceTimezone());
+
     useEffect(() => {
         if (user?.email) {
             setProfileEmail(user.email);
@@ -50,14 +55,16 @@ export default function SettingsPage() {
         if (userName) {
             setProfileName(userName);
         }
-    }, [user, userName]);
+        if (userTimezone) {
+            setTimezone(userTimezone);
+        }
+    }, [user, userName, userTimezone]);
 
     // Life Areas management state
     const [newAreaName, setNewAreaName] = useState("");
     const [newAreaColor, setNewAreaColor] = useState("#3B82F6");
 
     // Preferences state
-    const [timezone, setTimezone] = useState("UTC");
     const [dateFormat, setDateFormat] = useState("YYYY-MM-DD");
     const [startOfWeek, setStartOfWeek] = useState("Monday");
 
@@ -289,16 +296,33 @@ export default function SettingsPage() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div className="space-y-1">
-                                <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">Timezone</label>
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">Timezone</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const detected = getDeviceTimezone();
+                                            setTimezone(detected);
+                                        }}
+                                        title="Auto-detect device timezone"
+                                        className="text-[10px] text-brand-blue hover:text-brand-blue-hover font-semibold cursor-pointer underline"
+                                    >
+                                        Detect Device
+                                    </button>
+                                </div>
                                 <select
                                     value={timezone}
                                     onChange={(e) => setTimezone(e.target.value)}
                                     className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue"
                                 >
-                                    <option value="UTC-5">UTC-5 (EST - Eastern)</option>
-                                    <option value="UTC+0">UTC+0 (GMT - London)</option>
-                                    <option value="UTC+2">UTC+2 (CEST - Central Europe)</option>
-                                    <option value="UTC+8">UTC+8 (SGT - Singapore)</option>
+                                    {TIMEZONE_OPTIONS.map((opt) => (
+                                        <option key={opt.value} value={opt.value}>
+                                            {opt.label}
+                                        </option>
+                                    ))}
+                                    {!TIMEZONE_OPTIONS.some(o => o.value === timezone) && (
+                                        <option value={timezone}>{timezone}</option>
+                                    )}
                                 </select>
                             </div>
 

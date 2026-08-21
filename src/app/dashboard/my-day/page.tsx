@@ -5,14 +5,15 @@ import { useApp, Task } from "@/context/AppContext";
 import { TaskItem } from "@/components/dashboard/TaskItem";
 import { Plus, Sun, Sunrise, Sunset, PlusCircle, ArrowUpDown, ChevronRight, Moon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { getLocalDateString, formatLocalDate } from "@/lib/utils/dateTime";
 
 export default function MyDayPage() {
-    const { tasks, addTask, updateTask } = useApp();
+    const { tasks, addTask, updateTask, userTimezone } = useApp();
     const [newTitle, setNewTitle] = useState("");
     const [activeSegment, setActiveSegment] = useState<"Morning" | "Afternoon" | "Evening">("Morning");
 
-    // Filter tasks that are scheduled for Today (August 8, 2026)
-    const todayDateString = "2026-08-08";
+    // Dynamic user-local today date
+    const todayDateString = getLocalDateString(new Date(), userTimezone);
     const todayTasks = tasks.filter(t => t.dueDate === todayDateString);
 
     // Group tasks by their timeline segments

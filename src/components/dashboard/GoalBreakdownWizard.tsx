@@ -41,7 +41,7 @@ export const GoalBreakdownWizard: React.FC<GoalBreakdownWizardProps> = ({
     const [goalTitle, setGoalTitle] = useState(baseGoal?.title || "");
     const [goalDescription, setGoalDescription] = useState(baseGoal?.description || "");
     const [selectedAreaId, setSelectedAreaId] = useState(baseGoal?.lifeAreaId || "");
-    const [targetYear, setTargetYear] = useState("2026");
+    const [targetYear, setTargetYear] = useState(() => String(new Date().getFullYear()));
 
     const [generatedNodes, setGeneratedNodes] = useState<BreakdownNode[]>([]);
     const [isGenerated, setIsGenerated] = useState(false);
@@ -53,12 +53,13 @@ export const GoalBreakdownWizard: React.FC<GoalBreakdownWizardProps> = ({
     useEffect(() => {
         if (baseGoal) {
             const area = lifeAreas.find((a) => a.id === baseGoal.lifeAreaId);
+            const currentYearStr = String(new Date().getFullYear());
             const roadmap = generateGoalBreakdown(
                 baseGoal.title,
                 baseGoal.description || "",
                 area?.name || "General",
                 baseGoal.lifeAreaId,
-                "2026"
+                currentYearStr
             );
             // Skip the root node if the yearly goal already exists
             const childNodes = roadmap.nodes.filter((n) => n.goalType !== "yearly").map((n) => {

@@ -14,9 +14,10 @@ import {
     CheckSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getLocalDateString } from "@/lib/utils/dateTime";
 
 export default function TasksPage() {
-    const { tasks, addTask, updateTask, lifeAreas } = useApp();
+    const { tasks, addTask, updateTask, lifeAreas, userTimezone } = useApp();
 
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<"all" | "active" | "completed" | "priority">("all");
@@ -27,15 +28,15 @@ export default function TasksPage() {
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
 
+    const todayStr = getLocalDateString(new Date(), userTimezone);
+
     // Form states
     const [taskTitle, setTaskTitle] = useState("");
     const [taskPriority, setTaskPriority] = useState<Task["priority"]>("normal");
     const [taskCategory, setTaskCategory] = useState("Personal");
     const [taskLifeAreaId, setTaskLifeAreaId] = useState("area-personal");
     const [taskTime, setTaskTime] = useState<Task["time"] | "">("Morning");
-    const [taskDueDate, setTaskDueDate] = useState("2026-08-08");
-
-    const todayStr = "2026-08-08";
+    const [taskDueDate, setTaskDueDate] = useState(() => todayStr);
 
     // Filter tasks
     const filteredTasks = tasks.filter((task) => {

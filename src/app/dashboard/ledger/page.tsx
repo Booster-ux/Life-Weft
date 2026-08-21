@@ -18,6 +18,7 @@ import {
     SlidersHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getLocalDateString, formatLocalTime } from "@/lib/utils/dateTime";
 
 export default function LedgerPage() {
     const {
@@ -27,6 +28,7 @@ export default function LedgerPage() {
         tasks,
         deadlines,
         decisions,
+        userTimezone,
         addLedger,
         addLedgerEntry,
         updateLedgerEntry,
@@ -44,7 +46,7 @@ export default function LedgerPage() {
     // Form states
     const [entryTitle, setEntryTitle] = useState("");
     const [entryDescription, setEntryDescription] = useState("");
-    const [entryDate, setEntryDate] = useState("2026-08-08");
+    const [entryDate, setEntryDate] = useState(() => getLocalDateString(new Date(), userTimezone));
     const [entryTime, setEntryTime] = useState("12:00");
     const [entryLedgerId, setEntryLedgerId] = useState<string>(ledgers[0]?.id || "ldg-personal");
     const [entryLifeAreaId, setEntryLifeAreaId] = useState<string>("area-personal");
@@ -93,7 +95,7 @@ export default function LedgerPage() {
         setEditingEntry(null);
         setEntryTitle("");
         setEntryDescription("");
-        setEntryDate("2026-08-08");
+        setEntryDate(getLocalDateString(new Date(), userTimezone));
         setEntryTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
         setEntryLedgerId(selectedLedgerId !== "all" ? selectedLedgerId : ledgers[0]?.id || "ldg-personal");
         setEntryLifeAreaId(lifeAreas[0]?.id || "area-personal");

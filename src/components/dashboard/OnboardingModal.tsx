@@ -16,13 +16,16 @@ import {
     Check,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { formatLocalDate } from "@/lib/utils/dateTime";
 
 export const OnboardingModal: React.FC = () => {
-    const { onboardingCompleted, completeOnboarding } = useApp();
+    const { onboardingCompleted, completeOnboarding, userTimezone } = useApp();
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(0);
 
     if (onboardingCompleted) return null;
+
+    const sampleDate = formatLocalDate(new Date(), userTimezone, { month: "short", day: "2-digit", year: "numeric" }).toUpperCase();
 
     const steps = [
         {
@@ -141,7 +144,7 @@ export const OnboardingModal: React.FC = () => {
                     </p>
                     <div className="p-3 bg-brand-bg rounded-xl border border-brand-border text-white text-xs space-y-1">
                         <div className="flex justify-between items-center text-[10px] text-brand-gold font-bold">
-                            <span>AUG 08, 2026</span>
+                            <span>{sampleDate}</span>
                             <span>#STARTUP</span>
                         </div>
                         <p className="font-semibold text-white">Closed first beta partner agreement</p>

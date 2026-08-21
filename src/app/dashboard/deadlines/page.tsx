@@ -15,9 +15,10 @@ import {
     AlertTriangle,
     Layers,
 } from "lucide-react";
+import { getLocalDateString } from "@/lib/utils/dateTime";
 
 export default function DeadlinesPage() {
-    const { deadlines, addDeadline, updateDeadline, tasks, lifeAreas } = useApp();
+    const { deadlines, addDeadline, updateDeadline, tasks, lifeAreas, userTimezone } = useApp();
 
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [filterTimeframe, setFilterTimeframe] = useState<"all" | "today" | "tomorrow" | "week" | "upcoming" | "overdue" | "completed">("all");
@@ -25,7 +26,7 @@ export default function DeadlinesPage() {
 
     // Form states
     const [title, setTitle] = useState("");
-    const [dueDate, setDueDate] = useState("2026-08-10");
+    const [dueDate, setDueDate] = useState(() => getLocalDateString(new Date(), userTimezone));
     const [dueTime, setDueTime] = useState("18:00");
     const [priority, setPriority] = useState<"high" | "normal" | "low">("normal");
     const [lifeAreaId, setLifeAreaId] = useState("area-personal");

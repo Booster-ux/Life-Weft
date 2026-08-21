@@ -15,6 +15,7 @@ export interface Database {
                     full_name: string | null;
                     avatar_url: string | null;
                     timezone: string;
+                    role: "user" | "admin";
                     created_at: string;
                     updated_at: string;
                 };
@@ -23,6 +24,7 @@ export interface Database {
                     full_name?: string | null;
                     avatar_url?: string | null;
                     timezone?: string;
+                    role?: "user" | "admin";
                     created_at?: string;
                     updated_at?: string;
                 };
@@ -31,6 +33,7 @@ export interface Database {
                     full_name?: string | null;
                     avatar_url?: string | null;
                     timezone?: string;
+                    role?: "user" | "admin";
                     created_at?: string;
                     updated_at?: string;
                 };
@@ -542,6 +545,78 @@ export interface Database {
                     role?: string;
                     content?: string;
                     metadata?: Json;
+                    created_at?: string;
+                };
+                Relationships: [];
+            };
+            system_reports: {
+                Row: {
+                    id: string;
+                    user_id: string | null;
+                    title: string;
+                    description: string;
+                    category: "bug" | "feature" | "feedback" | "account" | "general";
+                    status: "open" | "in_progress" | "resolved" | "closed";
+                    priority: "low" | "normal" | "high" | "urgent";
+                    admin_notes: string | null;
+                    created_at: string;
+                    updated_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    user_id?: string | null;
+                    title: string;
+                    description: string;
+                    category?: "bug" | "feature" | "feedback" | "account" | "general";
+                    status?: "open" | "in_progress" | "resolved" | "closed";
+                    priority?: "low" | "normal" | "high" | "urgent";
+                    admin_notes?: string | null;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    user_id?: string | null;
+                    title?: string;
+                    description?: string;
+                    category?: "bug" | "feature" | "feedback" | "account" | "general";
+                    status?: "open" | "in_progress" | "resolved" | "closed";
+                    priority?: "low" | "normal" | "high" | "urgent";
+                    admin_notes?: string | null;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Relationships: [];
+            };
+            admin_audit_logs: {
+                Row: {
+                    id: string;
+                    admin_id: string;
+                    action: string;
+                    target_resource: string;
+                    target_id: string | null;
+                    details: Json;
+                    ip_address: string | null;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    admin_id: string;
+                    action: string;
+                    target_resource: string;
+                    target_id?: string | null;
+                    details?: Json;
+                    ip_address?: string | null;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    admin_id?: string;
+                    action?: string;
+                    target_resource?: string;
+                    target_id?: string | null;
+                    details?: Json;
+                    ip_address?: string | null;
                     created_at?: string;
                 };
                 Relationships: [];

@@ -22,16 +22,11 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
-
-const DAYS_OF_WEEK = [
-    { key: "Monday", short: "Mon", offset: 2 },
-    { key: "Tuesday", short: "Tue", offset: 3 },
-    { key: "Wednesday", short: "Wed", offset: 4 },
-    { key: "Thursday", short: "Thu", offset: 5 },
-    { key: "Friday", short: "Fri", offset: 6 },
-    { key: "Saturday", short: "Sat", offset: 0 },
-    { key: "Sunday", short: "Sun", offset: 1 },
-];
+import {
+    getCurrentWeekDays,
+    formatLocalDate,
+    getLocalDateString,
+} from "@/lib/utils/dateTime";
 
 export default function PlannerPage() {
     const {
@@ -40,6 +35,7 @@ export default function PlannerPage() {
         deadlines,
         goals,
         lifeAreas,
+        userTimezone,
         addPlannerSession,
         updatePlannerSession,
         deletePlannerSession,
@@ -50,7 +46,7 @@ export default function PlannerPage() {
     // Modal state
     const [isAddSessionOpen, setIsAddSessionOpen] = useState(false);
     const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
-    const [sessionDay, setSessionDay] = useState("Saturday");
+    const [sessionDay, setSessionDay] = useState("Monday");
     const [sessionTitle, setSessionTitle] = useState("");
     const [sessionStartTime, setSessionStartTime] = useState("09:00");
     const [sessionEndTime, setSessionEndTime] = useState("11:00");
@@ -59,23 +55,21 @@ export default function PlannerPage() {
     const [sessionGoalId, setSessionGoalId] = useState<string>("");
     const [selectedLifeArea, setSelectedLifeArea] = useState<string>("all");
 
-    // Base date: Sat Aug 8, 2026
-    const baseDate = new Date(2026, 7, 8 + weekOffset * 7);
+    // Dynamic user-local week days
+    const weekDays = getCurrentWeekDays(weekOffset, userTimezone);
+    const todayStr = getLocalDateString(new Date(), userTimezone);
 
-    // Compute formatted dates for days
+    // Compute formatted date for day key
     const getDateForDay = (dayKey: string) => {
-        const dayItem = DAYS_OF_WEEK.find((d) => d.key === dayKey);
-        const dayOffset = dayItem ? dayItem.offset : 0;
-        const d = new Date(baseDate);
-        d.setDate(baseDate.getDate() + dayOffset);
-        return d.toISOString().split("T")[0];
+        const item = weekDays.find((d) => d.key === dayKey);
+        return item ? item.dateString : todayStr;
     };
 
     const formatWeekRange = () => {
-        const start = new Date(baseDate);
-        const end = new Date(baseDate);
-        end.setDate(start.getDate() + 6);
-        return `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+        if (!weekDays.length) return "";
+        const startFormatted = formatLocalDate(weekDays[0].dateString, userTimezone, { month: "short", day: "numeric" });
+        const endFormatted = formatLocalDate(weekDays[6].dateString, userTimezone, { month: "short", day: "numeric", year: "numeric" });
+        return `${startFormatted} – ${endFormatted}`;
     };
 
     const handleOpenAddSession = (day: string) => {
@@ -160,7 +154,7 @@ export default function PlannerPage() {
 
     const renderDayColumn = (dayKey: string) => {
         const dayDate = getDateForDay(dayKey);
-        const isToday = dayDate === "2026-08-08";
+        const isToday = dayDate === todayStr;
 
         const daySessions = planner.filter(
             (s) => s.day === dayKey && (selectedLifeArea === "all" || s.lifeAreaId === selectedLifeArea)
@@ -177,6 +171,8 @@ export default function PlannerPage() {
         const dayGoals = goals.filter(
             (g) => g.targetDate === dayDate && g.status === "active" && (selectedLifeArea === "all" || g.lifeAreaId === selectedLifeArea)
         );
+
+        const dayNumber = dayDate.split("-")[2] || "";
 
         return (
             <div
@@ -195,7 +191,7 @@ export default function PlannerPage() {
                             {dayKey.substring(0, 3)}
                         </span>
                         <span className="text-xs font-mono font-bold text-brand-muted bg-brand-bg px-1.5 py-0.5 rounded border border-brand-border/60">
-                            {new Date(dayDate).getDate()}
+                            {dayNumber}
                         </span>
                     </div>
 
@@ -413,7 +409,7 @@ export default function PlannerPage() {
             {/* True Horizontal 7-Day Calendar Board (Side-by-side with smooth horizontal scrolling on mobile/tablet) */}
             <div className="w-full overflow-x-auto pb-4 scrollbar-thin">
                 <div className="flex gap-3 min-w-[1200px]">
-                    {DAYS_OF_WEEK.map((day) => renderDayColumn(day.key))}
+                    {weekDays.map((day) => renderDayColumn(day.key))}
                 </div>
             </div>
 
@@ -448,7 +444,7 @@ export default function PlannerPage() {
                                 onChange={(e) => setSessionDay(e.target.value)}
                                 className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-xl px-3 py-2 text-xs focus:border-brand-blue"
                             >
-                                {DAYS_OF_WEEK.map((d) => (
+                                {weekDays.map((d) => (
                                     <option key={d.key} value={d.key}>
                                         {d.key}
                                     </option>

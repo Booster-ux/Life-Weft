@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="lwBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E3A8A"/>
+      <stop offset="50%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#0A0D14"/>
+    </linearGradient>
+    <linearGradient id="lwGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047"/>
+      <stop offset="50%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#D97706"/>
+    </linearGradient>
+    <linearGradient id="lwBlueGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60A5FA"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background rounded plate -->
+  <rect width="512" height="512" rx="112" fill="url(#lwBgGrad)"/>
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="#3B82F6" stroke-opacity="0.35" stroke-width="6"/>
+
+  <!-- Subtle grid lattice representing woven life ledger -->
+  <path d="M120 180h272M120 256h272M120 332h272" stroke="#3B82F6" stroke-opacity="0.12" stroke-width="3" stroke-dasharray="6 6"/>
+
+  <!-- Lifeweft "L" Monogram with sleek rounded geometry -->
+  <path d="M148 116 h64 v216 h136 v56 H148 V116 z" fill="#FFFFFF" filter="url(#glow)"/>
+  <path d="M148 116 h64 v216 h136 v56 H148 V116 z" fill="#F8FAFC"/>
+
+  <!-- Woven accent line in the corner -->
+  <path d="M212 116 v216 h136" fill="none" stroke="url(#lwBlueGlow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Sparkling Golden Life Core Beacon -->
+  <circle cx="360" cy="148" r="38" fill="url(#lwGoldGrad)" filter="url(#glow)"/>
+  <circle cx="360" cy="148" r="22" fill="#FEF08A"/>
+  <polygon points="360,96 366,138 408,148 366,158 360,200 354,158 312,148 354,138" fill="#FFFBEB" opacity="0.8"/>
+</svg>
