@@ -163,9 +163,10 @@ export default function AdminUsersPage() {
                 </div>
             </div>
 
-            {/* User Table */}
+            {/* User Directory: Desktop Table + Mobile Cards */}
             <div className="bg-[#0D121F] border border-slate-800 rounded-xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left text-xs">
                         <thead className="bg-[#090D16] border-b border-slate-800 text-slate-400 uppercase tracking-wider font-bold text-[10px]">
                             <tr>
@@ -250,6 +251,73 @@ export default function AdminUsersPage() {
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Mobile Cards View */}
+                <div className="block md:hidden divide-y divide-slate-800/80">
+                    {isLoading ? (
+                        <div className="p-6 text-center text-slate-400 flex items-center justify-center gap-2">
+                            <RefreshCw size={16} className="animate-spin text-brand-blue" />
+                            <span>Loading user directory...</span>
+                        </div>
+                    ) : filteredUsers.length === 0 ? (
+                        <div className="p-6 text-center text-slate-400">
+                            No users matching query.
+                        </div>
+                    ) : (
+                        filteredUsers.map((u) => (
+                            <div key={u.id} className="p-4 space-y-3">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                        <div className="w-8 h-8 rounded-full bg-brand-blue/20 border border-brand-blue/30 flex items-center justify-center text-xs font-bold text-brand-blue flex-shrink-0">
+                                            {(u.full_name || "U")[0].toUpperCase()}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-white text-xs truncate">
+                                                {u.full_name || "Anonymous User"}
+                                            </p>
+                                            <p className="text-[10px] text-slate-400 font-mono truncate">
+                                                ID: {u.id.substring(0, 16)}...
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <span
+                                        className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase inline-flex items-center gap-1 ${
+                                            u.role === "admin"
+                                                ? "bg-brand-blue/20 text-brand-blue border-brand-blue/40"
+                                                : "bg-slate-800 text-slate-400 border-slate-700"
+                                        }`}
+                                    >
+                                        {u.role === "admin" ? <ShieldCheck size={10} /> : <Users size={10} />}
+                                        {u.role || "user"}
+                                    </span>
+                                </div>
+
+                                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                                    <span className="flex items-center gap-1">
+                                        <Globe size={11} /> {u.timezone || "UTC"}
+                                    </span>
+                                    <span>Joined: {new Date(u.created_at).toLocaleDateString()}</span>
+                                </div>
+
+                                <button
+                                    onClick={() => handleRoleToggle(u.id, u.role || "user")}
+                                    disabled={actionLoadingId === u.id}
+                                    className={`w-full py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer border ${
+                                        u.role === "admin"
+                                            ? "bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/30"
+                                            : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                                    }`}
+                                >
+                                    {actionLoadingId === u.id
+                                        ? "Updating..."
+                                        : u.role === "admin"
+                                        ? "Demote to User"
+                                        : "Promote to Admin"}
+                                </button>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
         </div>

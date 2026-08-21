@@ -327,23 +327,61 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
                                 <option value="monthly">Monthly Goal</option>
                                 <option value="quarterly">Quarterly Milestone</option>
                                 <option value="yearly">Yearly Vision</option>
+                                <option value="custom">Custom Goal</option>
                             </select>
                         </div>
                     )}
 
                     {captureType === "task" && (
-                        <div className="space-y-1">
-                            <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">Priority</label>
-                            <select
-                                value={taskPriority}
-                                onChange={(e) => setTaskPriority(e.target.value as "high" | "normal" | "low")}
-                                className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue"
-                            >
-                                <option value="normal">Normal Priority</option>
-                                <option value="high">High Priority (Gold)</option>
-                                <option value="low">Low Priority</option>
-                            </select>
-                        </div>
+                        <>
+                            <div className="space-y-1">
+                                <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">Priority</label>
+                                <select
+                                    value={taskPriority}
+                                    onChange={(e) => setTaskPriority(e.target.value as "high" | "normal" | "low")}
+                                    className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue"
+                                >
+                                    <option value="normal">Normal Priority</option>
+                                    <option value="high">High Priority (Gold)</option>
+                                    <option value="low">Low Priority</option>
+                                </select>
+                            </div>
+
+                            <div className="space-y-1 sm:col-span-2">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[11px] font-bold text-brand-muted uppercase tracking-wider block">Time & Target Segment</label>
+                                    <span className="text-[9px] text-brand-muted">Auto-sorts into Morning/Afternoon/Evening</span>
+                                </div>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="time"
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val) {
+                                                const [h] = val.split(":").map(Number);
+                                                if (!isNaN(h)) {
+                                                    if (h < 12) setTaskTime("Morning");
+                                                    else if (h < 17) setTaskTime("Afternoon");
+                                                    else setTaskTime("Evening");
+                                                }
+                                            }
+                                        }}
+                                        className="bg-brand-bg text-brand-text border border-brand-border rounded-lg px-2.5 py-1.5 text-xs w-28 focus:border-brand-blue"
+                                        title="Pick time to auto classify into segment"
+                                    />
+                                    <select
+                                        value={taskTime}
+                                        onChange={(e) => setTaskTime(e.target.value as any)}
+                                        className="flex-1 bg-brand-bg text-brand-text border border-brand-border rounded-lg px-2.5 py-1.5 text-xs focus:border-brand-blue"
+                                    >
+                                        <option value="Morning">Morning Focus</option>
+                                        <option value="Afternoon">Afternoon Focus</option>
+                                        <option value="Evening">Evening Focus</option>
+                                        <option value="">Unscheduled</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </>
                     )}
 
                     {captureType === "ledger" && (

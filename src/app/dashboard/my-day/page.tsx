@@ -10,19 +10,42 @@ import { getLocalDateString, formatLocalDate } from "@/lib/utils/dateTime";
 export default function MyDayPage() {
     const { tasks, addTask, updateTask, userTimezone } = useApp();
     const [newTitle, setNewTitle] = useState("");
+    const [taskTime, setTaskTime] = useState("");
     const [activeSegment, setActiveSegment] = useState<"Morning" | "Afternoon" | "Evening">("Morning");
 
     // Dynamic user-local today date
     const todayDateString = getLocalDateString(new Date(), userTimezone);
     const todayTasks = tasks.filter(t => t.dueDate === todayDateString);
 
-    // Group tasks by their timeline segments
-    const morningTasks = todayTasks.filter(t => t.time === "Morning");
-    const afternoonTasks = todayTasks.filter(t => t.time === "Afternoon");
-    const eveningTasks = todayTasks.filter(t => t.time === "Evening");
-    const unscheduledTasks = todayTasks.filter(t => !t.time);
+    // Auto-detect timeline segment from time string (HH:mm)
+    const classifyTimeSegment = (timeStr: string): "Morning" | "Afternoon" | "Evening" => {
+        if (!timeStr) return "Morning";
+        const [hours] = timeStr.split(":").map(Number);
+        if (isNaN(hours)) return "Morning";
+        if (hours < 12) return "Morning";
+        if (hours < 17) return "Afternoon";
+        return "Evening";
+    };
 
-    // Mock interaction: Quick insertion of a task into a specific timeline segment
+    const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setTaskTime(val);
+        if (val) {
+            setActiveSegment(classifyTimeSegment(val));
+        }
+    };
+
+    const handleSegmentClick = (seg: "Morning" | "Afternoon" | "Evening") => {
+        setActiveSegment(seg);
+        // Set a reasonable default time if empty
+        if (!taskTime) {
+            if (seg === "Morning") setTaskTime("09:00");
+            else if (seg === "Afternoon") setTaskTime("14:00");
+            else setTaskTime("19:00");
+        }
+    };
+
+    // Quick insertion of a task into a specific timeline segment
     const handleAddNewTask = (e: React.FormEvent) => {
         e.preventDefault();
         if (!newTitle.trim()) return;
@@ -32,12 +55,19 @@ export default function MyDayPage() {
             completed: false,
             priority: "normal",
             category: "Personal",
-            time: activeSegment,
+            time: taskTime ? `${activeSegment} • ${taskTime}` : activeSegment,
             dueDate: todayDateString,
         });
 
         setNewTitle("");
+        setTaskTime("");
     };
+
+    // Group tasks by their timeline segments
+    const morningTasks = todayTasks.filter(t => t.time && t.time.includes("Morning"));
+    const afternoonTasks = todayTasks.filter(t => t.time && t.time.includes("Afternoon"));
+    const eveningTasks = todayTasks.filter(t => t.time && t.time.includes("Evening"));
+    const unscheduledTasks = todayTasks.filter(t => !t.time || (!t.time.includes("Morning") && !t.time.includes("Afternoon") && !t.time.includes("Evening")));
 
     // Mock interaction: Move a task to a different timeline segment
     const moveTaskSegment = (task: Task, newTime: "Morning" | "Afternoon" | "Evening" | undefined) => {
@@ -73,7 +103,7 @@ export default function MyDayPage() {
     );
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-full">
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
@@ -81,56 +111,76 @@ export default function MyDayPage() {
                         <Sun className="text-brand-gold" />
                         My Day Focus
                     </h1>
-                    <p className="text-sm text-brand-muted mt-1 leading-none select-text">
-                        Align morning, afternoon, and evening checkpoints to avoid feeling overwhelmed.
+                    <p className="text-xs sm:text-sm text-brand-muted mt-1 leading-none select-text">
+                        Align morning, afternoon, and evening checkpoints to stay focused.
                     </p>
                 </div>
             </div>
 
             {/* Grid: Day planner and capture */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* Left Side: Dynamic focus Capture form */}
                 <div className="lg:col-span-1 space-y-4">
-                    <div className="bg-brand-surface border border-brand-border rounded-xl p-5 shadow-sm space-y-4">
-                        <h3 className="text-xs font-bold text-brand-muted uppercase tracking-wider block">
-                            Quick Schedule Task
-                        </h3>
+                    <div className="bg-brand-surface border border-brand-border rounded-xl p-4 sm:p-5 shadow-sm space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-xs font-bold text-brand-muted uppercase tracking-wider block">
+                                Quick Schedule Task
+                            </h3>
+                            <span className="text-[10px] text-brand-gold font-bold px-2 py-0.5 bg-brand-gold/10 border border-brand-gold/20 rounded">
+                                {activeSegment}
+                            </span>
+                        </div>
 
-                        <form onSubmit={handleAddNewTask} className="space-y-3.5">
+                        <form onSubmit={handleAddNewTask} className="space-y-3">
                             <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-brand-muted uppercase tracking-wider block">Task Title</label>
                                 <input
                                     type="text"
-                                    placeholder="Task title..."
+                                    placeholder="e.g. Finish client proposal..."
                                     value={newTitle}
                                     onChange={(e) => setNewTitle(e.target.value)}
-                                    className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2.5 text-sm focus:border-brand-blue outline-none"
+                                    className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue outline-none"
                                     required
+                                />
+                            </div>
+
+                            {/* Time input + Auto classification */}
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-bold text-brand-muted uppercase tracking-wider block">Time (Optional)</label>
+                                    <span className="text-[9px] text-brand-muted">Auto-sorts into segment</span>
+                                </div>
+                                <input
+                                    type="time"
+                                    value={taskTime}
+                                    onChange={handleTimeChange}
+                                    className="w-full bg-brand-bg text-brand-text border border-brand-border rounded-lg px-3 py-2 text-xs focus:border-brand-blue outline-none"
                                 />
                             </div>
 
                             {/* Segment Toggles */}
                             <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-brand-muted uppercase tracking-wider block">Target Segment</label>
+                                <label className="text-[10px] font-bold text-brand-muted uppercase tracking-wider block">Segment</label>
                                 <div className="grid grid-cols-3 gap-1 bg-brand-bg p-1 rounded-lg border border-brand-border">
                                     {(["Morning", "Afternoon", "Evening"] as const).map(seg => (
                                         <button
                                             key={seg}
                                             type="button"
-                                            onClick={() => setActiveSegment(seg)}
-                                            className={`py-1.5 px-2 rounded-md text-xs font-semibold uppercase tracking-wider transition-colors ${activeSegment === seg
-                                                ? "bg-brand-blue text-white shadow-sm"
+                                            onClick={() => handleSegmentClick(seg)}
+                                            className={`py-1.5 px-2 rounded-md text-[11px] font-semibold uppercase tracking-wider transition-colors cursor-pointer text-center ${activeSegment === seg
+                                                ? "bg-brand-blue text-white shadow-sm font-bold"
                                                 : "text-brand-muted hover:text-brand-text bg-transparent"
                                                 }`}
                                         >
-                                            {seg.substring(0, 3)}
+                                            {seg}
                                         </button>
                                     ))}
                                 </div>
                             </div>
 
-                            <Button type="submit" variant="primary" className="w-full py-2.5 justify-center text-xs font-bold uppercase tracking-wider">
-                                Schedule to {activeSegment}
+                            <Button type="submit" variant="primary" className="w-full py-2 justify-center text-xs font-bold uppercase tracking-wider mt-2">
+                                Add to {activeSegment}
                             </Button>
                         </form>
                     </div>

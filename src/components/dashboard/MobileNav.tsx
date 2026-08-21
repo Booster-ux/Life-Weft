@@ -84,7 +84,6 @@ export const MobileNav: React.FC<MobileNavProps> = ({
         if (pathname.includes("/decisions")) return "Decisions";
         if (pathname.includes("/ledger")) return "Ledger";
         if (pathname.includes("/knowledge")) return "Knowledge";
-        if (pathname.includes("/ask")) return "Ask Lifeweft";
         if (pathname.includes("/settings")) return "Settings";
         return "Lifeweft";
     };

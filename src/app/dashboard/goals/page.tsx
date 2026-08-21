@@ -21,7 +21,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
-type FilterTab = "all" | "yearly" | "quarterly" | "monthly" | "weekly" | "daily" | "active" | "completed";
+type FilterTab = "all" | "yearly" | "quarterly" | "monthly" | "weekly" | "daily" | "custom" | "active" | "completed";
 
 export default function GoalsPage() {
     const { goals, lifeAreas, activeLifeArea, setActiveLifeArea } = useApp();
@@ -181,6 +181,7 @@ export default function GoalsPage() {
                             { id: "monthly", label: "Monthly" },
                             { id: "weekly", label: "Weekly" },
                             { id: "daily", label: "Daily Actions" },
+                            { id: "custom", label: "Custom" },
                             { id: "active", label: "Active" },
                             { id: "completed", label: "Completed" },
                         ] as const

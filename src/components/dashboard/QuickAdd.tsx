@@ -159,10 +159,26 @@ export const QuickAdd: React.FC<QuickAddProps> = ({ onOpenQuickCaptureModal }) =
                             </div>
                         )}
 
-                        {/* Time segment */}
+                        {/* Time segment + exact time */}
                         {quickMode === "task" && (
                             <div className="flex items-center gap-1.5 bg-brand-bg px-2.5 py-1 rounded-md border border-brand-border">
                                 <Clock size={12} className="text-brand-muted" />
+                                <input
+                                    type="time"
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val) {
+                                            const [h] = val.split(":").map(Number);
+                                            if (!isNaN(h)) {
+                                                if (h < 12) setTime("Morning");
+                                                else if (h < 17) setTime("Afternoon");
+                                                else setTime("Evening");
+                                            }
+                                        }
+                                    }}
+                                    className="bg-transparent text-brand-muted hover:text-brand-text cursor-pointer focus:outline-none border-none outline-none font-medium py-0.5 text-xs w-20"
+                                    title="Choose time to auto-classify into Morning / Afternoon / Evening"
+                                />
                                 <select
                                     value={time || ""}
                                     onChange={(e) => setTime(e.target.value ? (e.target.value as "Morning" | "Afternoon" | "Evening") : undefined)}
