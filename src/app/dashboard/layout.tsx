@@ -6,6 +6,7 @@ import { MobileNav } from "@/components/dashboard/MobileNav";
 import { GlobalSearchModal } from "@/components/dashboard/GlobalSearchModal";
 import { QuickCaptureModal } from "@/components/dashboard/QuickCaptureModal";
 import { OnboardingModal } from "@/components/dashboard/OnboardingModal";
+import { EveningReflectionModal } from "@/components/dashboard/EveningReflectionModal";
 
 export default function DashboardLayout({
     children,
@@ -14,6 +15,7 @@ export default function DashboardLayout({
 }) {
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isQuickCaptureOpen, setIsQuickCaptureOpen] = useState(false);
+    const [isReflectionOpen, setIsReflectionOpen] = useState(false);
     const [quickCaptureType, setQuickCaptureType] = useState<"task" | "ledger" | "note" | "deadline" | "decision">("task");
 
     // Global keyboard shortcuts (Ctrl/Cmd + K for search)
@@ -35,15 +37,18 @@ export default function DashboardLayout({
             }
             setIsQuickCaptureOpen(true);
         };
+        const handleOpenReflection = () => setIsReflectionOpen(true);
 
         window.addEventListener("keydown", handleKeyDown);
         window.addEventListener("lw-open-search", handleOpenSearch);
         window.addEventListener("lw-open-quick-capture", handleOpenCapture);
+        window.addEventListener("lw-open-reflection", handleOpenReflection);
 
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
             window.removeEventListener("lw-open-search", handleOpenSearch);
             window.removeEventListener("lw-open-quick-capture", handleOpenCapture);
+            window.removeEventListener("lw-open-reflection", handleOpenReflection);
         };
     }, []);
 
@@ -56,6 +61,7 @@ export default function DashboardLayout({
                     setQuickCaptureType("task");
                     setIsQuickCaptureOpen(true);
                 }}
+                onOpenReflection={() => setIsReflectionOpen(true)}
             />
 
             {/* Desktop Sidebar Navigation */}
@@ -66,6 +72,7 @@ export default function DashboardLayout({
                     setQuickCaptureType("task");
                     setIsQuickCaptureOpen(true);
                 }}
+                onOpenReflection={() => setIsReflectionOpen(true)}
             />
 
             {/* Main Content Space */}
@@ -86,6 +93,12 @@ export default function DashboardLayout({
                 isOpen={isQuickCaptureOpen}
                 onClose={() => setIsQuickCaptureOpen(false)}
                 initialType={quickCaptureType}
+            />
+
+            {/* Guided Evening Reflection Modal */}
+            <EveningReflectionModal
+                isOpen={isReflectionOpen}
+                onClose={() => setIsReflectionOpen(false)}
             />
 
             {/* First-Time User Onboarding Tutorial */}

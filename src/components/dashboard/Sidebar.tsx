@@ -1,57 +1,66 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import {
     LayoutDashboard,
-    Sun,
-    Target,
     CheckSquare,
     Calendar,
+    BookOpen,
+    Target,
     Timer,
     GitFork,
-    BookOpen,
     Library,
-    Sparkles,
+    AlarmClock,
     Settings,
     Search,
     Plus,
     LogOut,
     User,
     ShieldCheck,
+    ChevronDown,
+    ChevronRight,
+    MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NotificationCenter } from "./NotificationCenter";
 
 interface SidebarProps {
     className?: string;
     onOpenSearch?: () => void;
     onOpenQuickCapture?: () => void;
+    onOpenReflection?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
     className,
     onOpenSearch,
     onOpenQuickCapture,
+    onOpenReflection,
 }) => {
     const pathname = usePathname();
     const router = useRouter();
     const { userName, avatarUrl, role, tasks, deadlines, ledgerEntries, goals, signOut } = useApp();
 
+    const [isMoreOpen, setIsMoreOpen] = useState(
+        pathname.includes("/goals") ||
+        pathname.includes("/deadlines") ||
+        pathname.includes("/decisions") ||
+        pathname.includes("/knowledge") ||
+        pathname.includes("/alarms") ||
+        pathname.includes("/settings") ||
+        pathname.startsWith("/admin")
+    );
+
     const activeTasksCount = tasks.filter((t) => !t.completed).length;
     const activeDeadlinesCount = deadlines.filter((d) => !d.completed && d.daysLeft >= 0).length;
     const activeGoalsCount = goals.filter((g) => g.status === "active").length;
 
-    const menuItems = [
+    // 4 Primary Navigation Items
+    const primaryItems = [
         { name: "Today", href: "/dashboard", icon: LayoutDashboard },
-        { name: "My Day", href: "/dashboard/my-day", icon: Sun },
-        {
-            name: "Goals",
-            href: "/dashboard/goals",
-            icon: Target,
-            badge: activeGoalsCount > 0 ? activeGoalsCount : undefined,
-        },
         {
             name: "Tasks",
             href: "/dashboard/tasks",
@@ -60,24 +69,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
         },
         { name: "Planner", href: "/dashboard/planner", icon: Calendar },
         {
+            name: "Ledger",
+            href: "/dashboard/ledger",
+            icon: BookOpen,
+            badge: ledgerEntries.length > 0 ? ledgerEntries.length : undefined,
+        },
+    ];
+
+    // Secondary items grouped under "More"
+    const moreItems = [
+        {
+            name: "Goals",
+            href: "/dashboard/goals",
+            icon: Target,
+            badge: activeGoalsCount > 0 ? activeGoalsCount : undefined,
+        },
+        {
             name: "Deadlines",
             href: "/dashboard/deadlines",
             icon: Timer,
             badge: activeDeadlinesCount > 0 ? activeDeadlinesCount : undefined,
         },
         { name: "Decisions", href: "/dashboard/decisions", icon: GitFork },
-        {
-            name: "Ledger",
-            href: "/dashboard/ledger",
-            icon: BookOpen,
-            badge: ledgerEntries.length > 0 ? ledgerEntries.length : undefined,
-        },
         { name: "Knowledge", href: "/dashboard/knowledge", icon: Library },
+        { name: "Alarms", href: "/dashboard/alarms", icon: AlarmClock },
         ...(role === "admin"
             ? [{ name: "Admin Console", href: "/admin", icon: ShieldCheck, badge: "Admin" }]
             : []),
         { name: "Settings", href: "/dashboard/settings", icon: Settings },
     ];
+
+    const isAnyMoreActive = moreItems.some((item) => pathname.startsWith(item.href));
 
     const handleLogout = async () => {
         await signOut();
@@ -86,12 +108,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return (
         <aside
             className={cn(
-                "w-64 bg-brand-surface border-r border-brand-border flex flex-col h-screen sticky top-0 font-sans z-30 transition-transform duration-300 select-none",
+                "w-64 bg-brand-surface border-r border-brand-border flex flex-col h-screen sticky top-0 font-sans z-30 select-none",
                 className
             )}
         >
-            {/* Brand logo */}
-            <div className="h-16 px-6 border-b border-brand-border flex items-center justify-between">
+            {/* Brand Logo & Header Actions */}
+            <div className="h-16 px-5 border-b border-brand-border flex items-center justify-between">
                 <Link href="/dashboard" className="flex items-center gap-2.5 group">
                     <div className="h-8 w-8 rounded-lg bg-brand-blue flex items-center justify-center shadow-lg shadow-brand-blue/20 group-hover:scale-105 transition-transform duration-200">
                         <span className="font-extrabold text-white text-base">L</span>
@@ -100,6 +122,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         Lifeweft<span className="text-brand-gold">.</span>
                     </span>
                 </Link>
+
+                <div className="flex items-center gap-1">
+                    <NotificationCenter onOpenReflection={onOpenReflection} />
+                </div>
             </div>
 
             {/* Quick Action Bar: Search & Quick Capture */}
@@ -114,11 +140,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 <button
                     onClick={onOpenSearch}
-                    className="w-full flex items-center justify-between px-3 py-2 bg-brand-bg hover:bg-brand-border/40 text-brand-muted hover:text-brand-text border border-brand-border rounded-lg text-xs transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-between px-3 py-1.5 bg-brand-bg hover:bg-brand-border/40 text-brand-muted hover:text-brand-text border border-brand-border rounded-lg text-xs transition-colors cursor-pointer"
                 >
                     <div className="flex items-center gap-2">
-                        <Search size={14} />
-                        <span>Search workspace...</span>
+                        <Search size={13} />
+                        <span>Search...</span>
                     </div>
                     <kbd className="text-[10px] bg-brand-surface px-1.5 py-0.5 rounded border border-brand-border/80 font-mono text-brand-muted">
                         ⌘K
@@ -126,43 +152,48 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
             </div>
 
-            {/* Nav List */}
+            {/* Primary Navigation List */}
             <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
                 <div className="px-3 pb-1 pt-1 text-[10px] font-bold text-brand-muted/70 uppercase tracking-widest">
-                    Workspace
+                    Main
                 </div>
-                {menuItems.map((item) => {
+                {primaryItems.map((item) => {
                     const isActive =
                         item.href === "/dashboard"
                             ? pathname === "/dashboard"
                             : pathname.startsWith(item.href);
+
+                    const Icon = item.icon;
 
                     return (
                         <Link
                             key={item.name}
                             href={item.href}
                             className={cn(
-                                "flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all duration-150 smooth-hover text-brand-muted hover:text-brand-text group hover:bg-brand-border/30",
-                                isActive && "bg-brand-blue/10 border border-brand-blue/20 text-brand-blue font-semibold hover:bg-brand-blue/15 hover:text-brand-blue"
+                                "flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition-colors duration-150 group",
+                                isActive
+                                    ? "bg-brand-blue text-white shadow-sm font-bold"
+                                    : "text-brand-muted hover:text-brand-text hover:bg-brand-bg/80"
                             )}
                         >
-                            <div className="flex items-center gap-2.5">
-                                <item.icon
+                            <div className="flex items-center gap-3">
+                                <Icon
                                     size={16}
                                     className={cn(
-                                        "text-brand-muted group-hover:text-brand-text transition-colors",
-                                        isActive && "text-brand-blue"
+                                        "transition-colors",
+                                        isActive ? "text-white" : "text-brand-muted group-hover:text-brand-text"
                                     )}
                                 />
-                                <span className={cn(isActive && "text-brand-text font-bold")}>
-                                    {item.name}
-                                </span>
+                                <span>{item.name}</span>
                             </div>
+
                             {item.badge !== undefined && (
                                 <span
                                     className={cn(
-                                        "text-[10px] px-1.5 py-0.2 rounded-full font-bold bg-brand-border text-brand-muted",
-                                        isActive && "bg-brand-blue/20 text-brand-blue"
+                                        "text-[10px] px-1.5 py-0.5 rounded-full font-bold",
+                                        isActive
+                                            ? "bg-white/20 text-white"
+                                            : "bg-brand-bg text-brand-muted border border-brand-border/60"
                                     )}
                                 >
                                     {item.badge}
@@ -171,43 +202,87 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         </Link>
                     );
                 })}
+
+                {/* More Collapsible Section */}
+                <div className="pt-2">
+                    <button
+                        type="button"
+                        onClick={() => setIsMoreOpen(!isMoreOpen)}
+                        className={cn(
+                            "w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer",
+                            isAnyMoreActive
+                                ? "text-white font-bold bg-brand-bg/60"
+                                : "text-brand-muted hover:text-brand-text hover:bg-brand-bg/80"
+                        )}
+                    >
+                        <div className="flex items-center gap-3">
+                            <MoreHorizontal size={16} className="text-brand-muted" />
+                            <span>More</span>
+                        </div>
+                        {isMoreOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    </button>
+
+                    {isMoreOpen && (
+                        <div className="pl-3 pr-1 pt-1 space-y-0.5 border-l border-brand-border/50 ml-4.5 mt-1 animate-in fade-in duration-150">
+                            {moreItems.map((item) => {
+                                const isActive = pathname.startsWith(item.href);
+                                const Icon = item.icon;
+
+                                return (
+                                    <Link
+                                        key={item.name}
+                                        href={item.href}
+                                        className={cn(
+                                            "flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors group",
+                                            isActive
+                                                ? "bg-brand-blue/20 text-brand-blue font-bold border border-brand-blue/30"
+                                                : "text-brand-muted hover:text-brand-text hover:bg-brand-bg/60"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-2.5">
+                                            <Icon
+                                                size={14}
+                                                className={cn(
+                                                    "transition-colors",
+                                                    isActive ? "text-brand-blue" : "text-brand-muted group-hover:text-brand-text"
+                                                )}
+                                            />
+                                            <span>{item.name}</span>
+                                        </div>
+
+                                        {item.badge !== undefined && (
+                                            <span className="text-[9px] px-1.5 py-0.2 rounded-full font-bold bg-brand-bg text-brand-muted border border-brand-border/60">
+                                                {item.badge}
+                                            </span>
+                                        )}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
             </nav>
 
-            {/* Footer Profile & Logout */}
-            <div className="p-3 border-t border-brand-border space-y-2">
-                <Link
-                    href="/dashboard/settings"
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-brand-border/40 group transition-all"
-                >
-                    <div className="flex items-center gap-2.5">
-                        {avatarUrl ? (
-                            <img
-                                src={avatarUrl}
-                                alt={userName}
-                                className="h-8 w-8 rounded-full object-cover border border-brand-gold/50 flex-shrink-0"
-                            />
-                        ) : (
-                            <div className="h-8 w-8 rounded-full bg-brand-border flex items-center justify-center border border-brand-blue/30 text-xs font-bold text-brand-blue uppercase flex-shrink-0">
-                                {userName.substring(0, 2)}
-                            </div>
-                        )}
-                        <div className="text-left">
-                            <p className="text-xs font-semibold text-brand-text leading-tight truncate max-w-[120px]">
-                                {userName}
-                            </p>
-                            <p className="text-[10px] text-brand-muted leading-none mt-0.5">
-                                Personal Workspace
-                            </p>
-                        </div>
+            {/* Bottom User Profile Section */}
+            <div className="p-3 border-t border-brand-border flex items-center justify-between bg-brand-surface">
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="h-8 w-8 rounded-full bg-brand-blue/20 border border-brand-blue/40 flex items-center justify-center text-brand-blue font-bold text-xs flex-shrink-0">
+                        {(userName || "U")[0].toUpperCase()}
                     </div>
-                </Link>
+                    <div className="min-w-0">
+                        <p className="text-xs font-bold text-brand-text truncate">
+                            {userName || "User"}
+                        </p>
+                        <p className="text-[10px] text-brand-muted truncate">Workspace</p>
+                    </div>
+                </div>
 
                 <button
                     onClick={handleLogout}
-                    className="flex items-center justify-center gap-2 p-2 w-full border border-brand-border/60 rounded-lg text-xs font-medium text-brand-muted hover:text-red-400 hover:bg-red-950/20 hover:border-red-900/40 transition-all cursor-pointer"
+                    title="Sign Out"
+                    className="p-1.5 rounded-lg text-brand-muted hover:text-red-400 hover:bg-brand-border/40 transition-colors cursor-pointer"
                 >
-                    <LogOut size={13} />
-                    <span>Sign out</span>
+                    <LogOut size={16} />
                 </button>
             </div>
         </aside>

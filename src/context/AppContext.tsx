@@ -136,6 +136,36 @@ export interface PlannerSession {
     goalId?: string;
 }
 
+export interface Alarm {
+    id: string;
+    name: string;
+    time: string; // e.g. "05:30"
+    days: string[]; // ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    label?: string;
+    sound: string; // "Beacon", "Chime", "Dawn", "Pulse"
+    snoozeDuration: number; // in minutes (e.g. 5, 10, 15)
+    enabled: boolean;
+    createdAt: string;
+}
+
+export interface NotificationSettings {
+    morningCheckIn: boolean;
+    morningTime: string;
+    eveningCheckIn: boolean;
+    eveningTime: string;
+    deadlineAlerts: boolean;
+    quietHoursStart: string;
+    quietHoursEnd: string;
+}
+
+export interface DailyReflectionInput {
+    accomplished: string;
+    incomplete: string;
+    highlights: string;
+    learnings: string;
+    notes: string;
+}
+
 export interface AskLifeweftAnswer {
     id: string;
     question: string;
@@ -212,6 +242,20 @@ interface AppContextType {
     addPlannerSession: (session: Omit<PlannerSession, "id">) => Promise<void>;
     updatePlannerSession: (session: PlannerSession) => Promise<void>;
     deletePlannerSession: (id: string) => Promise<void>;
+
+    // Alarms System
+    alarms: Alarm[];
+    addAlarm: (alarm: Omit<Alarm, "id" | "createdAt">) => Promise<void>;
+    updateAlarm: (alarm: Alarm) => Promise<void>;
+    toggleAlarm: (id: string) => Promise<void>;
+    deleteAlarm: (id: string) => Promise<void>;
+
+    // Notification Preferences
+    notificationSettings: NotificationSettings;
+    updateNotificationSettings: (settings: Partial<NotificationSettings>) => void;
+
+    // Daily Reflection
+    saveReflectionToLedger: (reflection: DailyReflectionInput) => Promise<void>;
 
     // User & Preferences & Role
     userName: string;
@@ -334,6 +378,52 @@ const initialGoals: Goal[] = [
     },
 ];
 
+const initialAlarms: Alarm[] = [
+    {
+        id: "alarm-1",
+        name: "Morning Wake & Hydration",
+        time: "05:30",
+        days: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+        label: "Wake up",
+        sound: "Beacon",
+        snoozeDuration: 10,
+        enabled: true,
+        createdAt: "2026-01-01",
+    },
+    {
+        id: "alarm-2",
+        name: "Afternoon Deep Work Sprint",
+        time: "14:00",
+        days: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+        label: "Study / Code",
+        sound: "Chime",
+        snoozeDuration: 5,
+        enabled: true,
+        createdAt: "2026-01-01",
+    },
+    {
+        id: "alarm-3",
+        name: "Evening Reflection & Ledger Review",
+        time: "19:00",
+        days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        label: "Review today's work",
+        sound: "Dawn",
+        snoozeDuration: 15,
+        enabled: true,
+        createdAt: "2026-01-01",
+    },
+];
+
+const defaultNotificationSettings: NotificationSettings = {
+    morningCheckIn: true,
+    morningTime: "08:00",
+    eveningCheckIn: true,
+    eveningTime: "19:00",
+    deadlineAlerts: true,
+    quietHoursStart: "22:00",
+    quietHoursEnd: "07:00",
+};
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const supabase = createClient();
 
@@ -362,6 +452,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [decisions, setDecisions] = useState<Decision[]>([]);
     const [knowledge, setKnowledge] = useState<KnowledgeItem[]>([]);
     const [planner, setPlanner] = useState<PlannerSession[]>([]);
+
+    // Alarms and Notification settings
+    const [alarms, setAlarms] = useState<Alarm[]>(() => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem("lifeweft_alarms");
+            if (saved) {
+                try {
+                    return JSON.parse(saved);
+                } catch {
+                    return initialAlarms;
+                }
+            }
+        }
+        return initialAlarms;
+    });
+
+    const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(() => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem("lifeweft_notifications");
+            if (saved) {
+                try {
+                    return JSON.parse(saved);
+                } catch {
+                    return defaultNotificationSettings;
+                }
+            }
+        }
+        return defaultNotificationSettings;
+    });
 
     // Fetch all user-owned data from Supabase
     const fetchUserData = useCallback(async (userId: string) => {
@@ -1377,6 +1496,104 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     // ==========================================
+    // Alarms System CRUD
+    // ==========================================
+    const addAlarm = async (alarmData: Omit<Alarm, "id" | "createdAt">) => {
+        const newAlarm: Alarm = {
+            ...alarmData,
+            id: `alarm-${Date.now()}`,
+            createdAt: new Date().toISOString(),
+        };
+        setAlarms((prev) => {
+            const next = [...prev, newAlarm];
+            if (typeof window !== "undefined") {
+                localStorage.setItem("lifeweft_alarms", JSON.stringify(next));
+            }
+            return next;
+        });
+    };
+
+    const updateAlarm = async (alarmData: Alarm) => {
+        setAlarms((prev) => {
+            const next = prev.map((a) => (a.id === alarmData.id ? alarmData : a));
+            if (typeof window !== "undefined") {
+                localStorage.setItem("lifeweft_alarms", JSON.stringify(next));
+            }
+            return next;
+        });
+    };
+
+    const toggleAlarm = async (id: string) => {
+        setAlarms((prev) => {
+            const next = prev.map((a) => (a.id === id ? { ...a, enabled: !a.enabled } : a));
+            if (typeof window !== "undefined") {
+                localStorage.setItem("lifeweft_alarms", JSON.stringify(next));
+            }
+            return next;
+        });
+    };
+
+    const deleteAlarm = async (id: string) => {
+        setAlarms((prev) => {
+            const next = prev.filter((a) => a.id !== id);
+            if (typeof window !== "undefined") {
+                localStorage.setItem("lifeweft_alarms", JSON.stringify(next));
+            }
+            return next;
+        });
+    };
+
+    // ==========================================
+    // Notification Settings
+    // ==========================================
+    const updateNotificationSettings = (settingsUpdate: Partial<NotificationSettings>) => {
+        setNotificationSettings((prev) => {
+            const next = { ...prev, ...settingsUpdate };
+            if (typeof window !== "undefined") {
+                localStorage.setItem("lifeweft_notifications", JSON.stringify(next));
+            }
+            return next;
+        });
+    };
+
+    // ==========================================
+    // Daily Reflection -> Ledger Integration
+    // ==========================================
+    const saveReflectionToLedger = async (reflection: DailyReflectionInput) => {
+        const todayStr = getLocalDateString(new Date(), userTimezone);
+        const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+        let body = `### Daily Reflection — ${todayStr}\n\n`;
+        if (reflection.accomplished.trim()) {
+            body += `**What was accomplished today:**\n${reflection.accomplished.trim()}\n\n`;
+        }
+        if (reflection.incomplete.trim()) {
+            body += `**What wasn't completed / Carry-over:**\n${reflection.incomplete.trim()}\n\n`;
+        }
+        if (reflection.highlights.trim()) {
+            body += `**What happened today / Key events:**\n${reflection.highlights.trim()}\n\n`;
+        }
+        if (reflection.learnings.trim()) {
+            body += `**Key lessons & insights learned:**\n${reflection.learnings.trim()}\n\n`;
+        }
+        if (reflection.notes.trim()) {
+            body += `**Things to remember:**\n${reflection.notes.trim()}\n\n`;
+        }
+
+        const defaultLedgerId = ledgers[0]?.id || "ldg-personal";
+
+        await addLedgerEntry({
+            title: `Daily Reflection (${todayStr})`,
+            description: body.trim(),
+            date: todayStr,
+            time: timeStr,
+            ledgerId: defaultLedgerId,
+            lifeAreaId: lifeAreas[0]?.id || "area-personal",
+            tags: ["DailyReflection", "Review", "Memory"],
+        });
+    };
+
+    // ==========================================
     // Ask Lifeweft Query Retriever Engine
     // ==========================================
     const queryLifeweft = async (question: string): Promise<AskLifeweftAnswer> => {
@@ -1548,6 +1765,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 addPlannerSession,
                 updatePlannerSession,
                 deletePlannerSession,
+                alarms,
+                addAlarm,
+                updateAlarm,
+                toggleAlarm,
+                deleteAlarm,
+                notificationSettings,
+                updateNotificationSettings,
+                saveReflectionToLedger,
                 userName,
                 avatarUrl,
                 userTimezone,

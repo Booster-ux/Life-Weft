@@ -36,6 +36,8 @@ export default function SettingsPage() {
         ledgers,
         addLedger,
         deleteLedger,
+        notificationSettings,
+        updateNotificationSettings,
     } = useApp();
 
     // Profile state
@@ -356,49 +358,99 @@ export default function SettingsPage() {
 
                 {/* Right Column (Reminders & Privacy) */}
                 <div className="space-y-6">
-                    {/* Notifications */}
+                    {/* Smart Notifications & Check-ins */}
                     <div className="bg-brand-surface border border-brand-border rounded-xl p-5 shadow-sm space-y-4">
-                        {getSectionHeader("Notifications", <Bell size={15} className="text-brand-gold" />)}
+                        {getSectionHeader("Smart Notifications & Check-ins", <Bell size={15} className="text-brand-gold" />)}
 
-                        <div className="space-y-3.5">
+                        <div className="space-y-4">
+                            {/* Deadline alerts */}
                             <label className="flex items-start justify-between gap-3 cursor-pointer select-none">
-                                <div className="min-w-0 pr-4">
-                                    <p className="text-xs font-bold text-white leading-none">Task reminders</p>
-                                    <p className="text-[10px] text-brand-muted mt-1">Prompt when timeline items are due.</p>
+                                <div className="min-w-0 pr-2">
+                                    <p className="text-xs font-bold text-white leading-none">Deadline 24h Alerts</p>
+                                    <p className="text-[10px] text-brand-muted mt-1">Receive smart alerts 24 hours prior to deadline dates.</p>
                                 </div>
                                 <input
                                     type="checkbox"
-                                    checked={taskReminders}
-                                    onChange={() => setTaskReminders(!taskReminders)}
-                                    className="h-4.5 w-4.5 rounded border border-brand-border bg-brand-bg checked:bg-brand-blue"
+                                    checked={notificationSettings.deadlineAlerts}
+                                    onChange={(e) => updateNotificationSettings({ deadlineAlerts: e.target.checked })}
+                                    className="h-4.5 w-4.5 rounded border border-brand-border bg-brand-bg checked:bg-brand-blue cursor-pointer"
                                 />
                             </label>
 
-                            <label className="flex items-start justify-between gap-3 cursor-pointer select-none">
-                                <div className="min-w-0 pr-4">
-                                    <p className="text-xs font-bold text-white leading-none">Deadline alerts</p>
-                                    <p className="text-[10px] text-brand-muted mt-1">Urgency indicators on upcoming target dates.</p>
-                                </div>
-                                <input
-                                    type="checkbox"
-                                    checked={deadlineReminders}
-                                    onChange={() => setDeadlineReminders(!deadlineReminders)}
-                                    className="h-4.5 w-4.5 rounded border border-brand-border bg-brand-bg checked:bg-brand-blue"
-                                />
-                            </label>
+                            {/* Morning check-in */}
+                            <div className="space-y-2 pt-2 border-t border-brand-border/30">
+                                <label className="flex items-start justify-between gap-3 cursor-pointer select-none">
+                                    <div className="min-w-0 pr-2">
+                                        <p className="text-xs font-bold text-white leading-none">Morning Check-in</p>
+                                        <p className="text-[10px] text-brand-muted mt-1">Daily briefing prompt for today's highest priority items.</p>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        checked={notificationSettings.morningCheckIn}
+                                        onChange={(e) => updateNotificationSettings({ morningCheckIn: e.target.checked })}
+                                        className="h-4.5 w-4.5 rounded border border-brand-border bg-brand-bg checked:bg-brand-blue cursor-pointer"
+                                    />
+                                </label>
+                                {notificationSettings.morningCheckIn && (
+                                    <div className="flex items-center justify-between pl-2">
+                                        <span className="text-[10px] text-brand-muted">Morning Check-in Time:</span>
+                                        <input
+                                            type="time"
+                                            value={notificationSettings.morningTime}
+                                            onChange={(e) => updateNotificationSettings({ morningTime: e.target.value })}
+                                            className="bg-brand-bg text-brand-text border border-brand-border rounded-md px-2 py-0.5 text-xs font-mono"
+                                        />
+                                    </div>
+                                )}
+                            </div>
 
-                            <label className="flex items-start justify-between gap-3 cursor-pointer select-none">
-                                <div className="min-w-0 pr-4">
-                                    <p className="text-xs font-bold text-white leading-none">Daily visual summary</p>
-                                    <p className="text-[10px] text-brand-muted mt-1">Daily command briefing on Today view.</p>
+                            {/* Evening check-in */}
+                            <div className="space-y-2 pt-2 border-t border-brand-border/30">
+                                <label className="flex items-start justify-between gap-3 cursor-pointer select-none">
+                                    <div className="min-w-0 pr-2">
+                                        <p className="text-xs font-bold text-white leading-none">Evening Reflection Check-in</p>
+                                        <p className="text-[10px] text-brand-muted mt-1">Prompt to review accomplishments and save lessons into Ledger.</p>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        checked={notificationSettings.eveningCheckIn}
+                                        onChange={(e) => updateNotificationSettings({ eveningCheckIn: e.target.checked })}
+                                        className="h-4.5 w-4.5 rounded border border-brand-border bg-brand-bg checked:bg-brand-blue cursor-pointer"
+                                    />
+                                </label>
+                                {notificationSettings.eveningCheckIn && (
+                                    <div className="flex items-center justify-between pl-2">
+                                        <span className="text-[10px] text-brand-muted">Evening Reflection Time:</span>
+                                        <input
+                                            type="time"
+                                            value={notificationSettings.eveningTime}
+                                            onChange={(e) => updateNotificationSettings({ eveningTime: e.target.value })}
+                                            className="bg-brand-bg text-brand-text border border-brand-border rounded-md px-2 py-0.5 text-xs font-mono"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Quiet Hours */}
+                            <div className="pt-2 border-t border-brand-border/30 space-y-1.5">
+                                <p className="text-xs font-bold text-white leading-none">Quiet Hours</p>
+                                <p className="text-[10px] text-brand-muted">Silence non-critical notifications during rest.</p>
+                                <div className="flex items-center gap-2 pt-1">
+                                    <input
+                                        type="time"
+                                        value={notificationSettings.quietHoursStart}
+                                        onChange={(e) => updateNotificationSettings({ quietHoursStart: e.target.value })}
+                                        className="bg-brand-bg text-brand-text border border-brand-border rounded-md px-2 py-1 text-xs font-mono"
+                                    />
+                                    <span className="text-xs text-brand-muted">to</span>
+                                    <input
+                                        type="time"
+                                        value={notificationSettings.quietHoursEnd}
+                                        onChange={(e) => updateNotificationSettings({ quietHoursEnd: e.target.value })}
+                                        className="bg-brand-bg text-brand-text border border-brand-border rounded-md px-2 py-1 text-xs font-mono"
+                                    />
                                 </div>
-                                <input
-                                    type="checkbox"
-                                    checked={dailySummary}
-                                    onChange={() => setDailySummary(!dailySummary)}
-                                    className="h-4.5 w-4.5 rounded border border-brand-border bg-brand-bg checked:bg-brand-blue"
-                                />
-                            </label>
+                            </div>
                         </div>
                     </div>
 

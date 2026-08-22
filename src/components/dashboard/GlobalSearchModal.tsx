@@ -139,7 +139,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                         </div>
                     ) : totalResults === 0 ? (
                         <div className="py-12 text-center text-xs text-brand-muted">
-                            No records found matching "{query}". Try checking another spelling or ask Lifeweft!
+                            No records found matching "{query}". Try checking another keyword or category.
                         </div>
                     ) : (
                         <div className="space-y-4 text-xs">
@@ -158,13 +158,9 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                                         >
                                             <div className="flex items-center gap-2 min-w-0">
                                                 <span className="h-2 w-2 rounded-full bg-brand-gold" />
-                                                <span className="text-brand-text font-medium truncate">
-                                                    {goal.title}
-                                                </span>
+                                                <span className="font-semibold text-brand-text truncate">{goal.title}</span>
                                             </div>
-                                            <span className="text-[10px] text-brand-muted uppercase font-semibold group-hover:text-brand-gold font-mono">
-                                                {goal.goalType} • {goal.progress}%
-                                            </span>
+                                            <span className="text-[10px] text-brand-muted font-mono">{goal.progress}%</span>
                                         </div>
                                     ))}
                                 </div>
@@ -184,14 +180,12 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                                             className="flex items-center justify-between p-2.5 bg-brand-bg hover:bg-brand-border/40 rounded-lg border border-brand-border transition-all cursor-pointer group"
                                         >
                                             <div className="flex items-center gap-2 min-w-0">
-                                                <span className={cn("h-2 w-2 rounded-full", task.completed ? "bg-emerald-400" : "bg-brand-blue")} />
-                                                <span className={cn("text-brand-text font-medium truncate", task.completed && "line-through text-brand-muted")}>
+                                                <span className={`h-2 w-2 rounded-full ${task.completed ? "bg-emerald-500" : "bg-brand-blue"}`} />
+                                                <span className={`font-semibold text-brand-text truncate ${task.completed ? "line-through text-brand-muted" : ""}`}>
                                                     {task.title}
                                                 </span>
                                             </div>
-                                            <span className="text-[10px] text-brand-muted uppercase font-semibold group-hover:text-brand-blue">
-                                                {task.category}
-                                            </span>
+                                            <span className="text-[10px] text-brand-muted font-mono">{task.dueDate || "No date"}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -202,19 +196,17 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                                 <div className="space-y-1.5">
                                     <span className="text-[10px] font-bold text-brand-gold uppercase tracking-wider flex items-center gap-1.5">
                                         <BookOpen size={12} />
-                                        Personal Ledger ({matchedLedger.length})
+                                        Ledger Chronicle ({matchedLedger.length})
                                     </span>
                                     {matchedLedger.map((entry) => (
                                         <div
                                             key={entry.id}
                                             onClick={() => handleNavigate("/dashboard/ledger")}
-                                            className="p-2.5 bg-brand-bg hover:bg-brand-border/40 rounded-lg border border-brand-border transition-all cursor-pointer group space-y-1"
+                                            className="p-2.5 bg-brand-bg hover:bg-brand-border/40 rounded-lg border border-brand-border transition-all cursor-pointer space-y-1"
                                         >
-                                            <div className="flex justify-between items-center">
-                                                <span className="font-semibold text-brand-text group-hover:text-brand-gold transition-colors truncate">
-                                                    {entry.title}
-                                                </span>
-                                                <span className="text-[10px] text-brand-muted font-mono">{entry.date}</span>
+                                            <div className="flex items-center justify-between text-[10px] text-brand-muted">
+                                                <span className="font-bold text-white">{entry.title}</span>
+                                                <span className="font-mono">{entry.date}</span>
                                             </div>
                                             <p className="text-[11px] text-brand-muted line-clamp-1">{entry.description}</p>
                                         </div>
@@ -235,10 +227,13 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                                             onClick={() => handleNavigate("/dashboard/deadlines")}
                                             className="flex items-center justify-between p-2.5 bg-brand-bg hover:bg-brand-border/40 rounded-lg border border-brand-border transition-all cursor-pointer group"
                                         >
-                                            <span className="font-medium text-brand-text group-hover:text-rose-400 transition-colors truncate">
-                                                {d.title}
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <span className="h-2 w-2 rounded-full bg-rose-400" />
+                                                <span className="font-semibold text-brand-text truncate">{d.title}</span>
+                                            </div>
+                                            <span className="text-[10px] text-rose-400 font-mono font-bold">
+                                                {d.daysLeft >= 0 ? `${d.daysLeft}d left` : "Overdue"}
                                             </span>
-                                            <span className="text-[10px] text-brand-muted font-mono">{d.dueDate}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -255,19 +250,10 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                                         <div
                                             key={dec.id}
                                             onClick={() => handleNavigate("/dashboard/decisions")}
-                                            className="p-2.5 bg-brand-bg hover:bg-brand-border/40 rounded-lg border border-brand-border transition-all cursor-pointer group space-y-1"
+                                            className="flex items-center justify-between p-2.5 bg-brand-bg hover:bg-brand-border/40 rounded-lg border border-brand-border transition-all cursor-pointer"
                                         >
-                                            <div className="flex justify-between items-center">
-                                                <span className="font-semibold text-brand-text group-hover:text-indigo-400 transition-colors truncate">
-                                                    {dec.title || dec.situation}
-                                                </span>
-                                                <span className="text-[9px] bg-brand-surface px-1.5 py-0.5 rounded border border-brand-border text-brand-muted uppercase">
-                                                    {dec.status}
-                                                </span>
-                                            </div>
-                                            {dec.chosenOption && (
-                                                <p className="text-[11px] text-brand-muted line-clamp-1">Chosen: {dec.chosenOption}</p>
-                                            )}
+                                            <span className="font-semibold text-brand-text truncate">{dec.title}</span>
+                                            <span className="text-[10px] text-brand-muted font-mono">{dec.status}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -280,19 +266,14 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                                         <Library size={12} />
                                         Knowledge Base ({matchedKnowledge.length})
                                     </span>
-                                    {matchedKnowledge.map((k) => (
+                                    {matchedKnowledge.map((item) => (
                                         <div
-                                            key={k.id}
+                                            key={item.id}
                                             onClick={() => handleNavigate("/dashboard/knowledge")}
-                                            className="p-2.5 bg-brand-bg hover:bg-brand-border/40 rounded-lg border border-brand-border transition-all cursor-pointer group space-y-1"
+                                            className="p-2.5 bg-brand-bg hover:bg-brand-border/40 rounded-lg border border-brand-border transition-all cursor-pointer space-y-1"
                                         >
-                                            <div className="flex justify-between items-center">
-                                                <span className="font-semibold text-brand-text group-hover:text-teal-400 transition-colors truncate">
-                                                    {k.title}
-                                                </span>
-                                                <span className="text-[10px] text-brand-muted">{k.category}</span>
-                                            </div>
-                                            <p className="text-[11px] text-brand-muted line-clamp-1">{k.content}</p>
+                                            <span className="font-semibold text-brand-text">{item.title}</span>
+                                            <p className="text-[11px] text-brand-muted line-clamp-1">{item.content}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -301,17 +282,17 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                             {/* Planner Results */}
                             {matchedPlanner.length > 0 && (
                                 <div className="space-y-1.5">
-                                    <span className="text-[10px] font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1.5">
+                                    <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                                         <Calendar size={12} />
-                                        Planner Sessions ({matchedPlanner.length})
+                                        Planner Focus ({matchedPlanner.length})
                                     </span>
                                     {matchedPlanner.map((p) => (
                                         <div
                                             key={p.id}
                                             onClick={() => handleNavigate("/dashboard/planner")}
-                                            className="flex items-center justify-between p-2.5 bg-brand-bg hover:bg-brand-border/40 rounded-lg border border-brand-border transition-all cursor-pointer group"
+                                            className="flex items-center justify-between p-2.5 bg-brand-bg hover:bg-brand-border/40 rounded-lg border border-brand-border transition-all cursor-pointer"
                                         >
-                                            <span className="font-medium text-brand-text truncate">{p.title}</span>
+                                            <span className="font-semibold text-brand-text truncate">{p.title}</span>
                                             <span className="text-[10px] text-brand-muted font-mono">{p.day} • {p.time}</span>
                                         </div>
                                     ))}
@@ -321,18 +302,10 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                     )}
                 </div>
 
-                {/* Footer Quick Link to Ask Lifeweft */}
+                {/* Footer Navigation Tip */}
                 <div className="p-3 bg-brand-bg/80 border-t border-brand-border flex items-center justify-between text-xs text-brand-muted">
-                    <div className="flex items-center gap-2">
-                        <Sparkles size={13} className="text-brand-gold" />
-                        <span>Need intelligent answers across your records?</span>
-                    </div>
-                    <button
-                        onClick={() => handleNavigate("/dashboard/ask")}
-                        className="text-brand-blue font-bold hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                        Ask Lifeweft <ArrowRight size={12} />
-                    </button>
+                    <span className="text-[11px]">Press <kbd className="font-mono bg-brand-surface px-1 py-0.5 rounded border border-brand-border">ESC</kbd> to close</span>
+                    <span className="text-[11px]">Quick navigation enabled across all modules</span>
                 </div>
             </div>
         </div>
